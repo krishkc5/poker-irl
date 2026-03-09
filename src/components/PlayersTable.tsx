@@ -318,7 +318,7 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
                   {isTurn ? <Badge tone="warning">Turn</Badge> : null}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+                <div className="table-seat-stats grid grid-cols-2 gap-2 text-[11px] text-slate-300">
                   <div className="rounded-xl border border-white/8 bg-black/20 px-2.5 py-2">
                     <p className="uppercase tracking-[0.16em] text-slate-500">Street</p>
                     <p className="mt-1 font-semibold text-slate-100">

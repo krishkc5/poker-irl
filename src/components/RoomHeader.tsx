@@ -41,10 +41,10 @@ export const RoomHeader = ({ room, players, currentUid, onLeave }: RoomHeaderPro
 
   return (
     <Panel className="room-header-shell mb-4 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">Room</p>
-        <h1 className="text-2xl font-extrabold tracking-wide text-emerald-100">{room.code}</h1>
-        <p className="text-sm text-emerald-100/80">
+      <div className="room-header-meta">
+        <p className="room-header-label text-xs uppercase tracking-[0.2em] text-emerald-200/80">Room</p>
+        <h1 className="room-header-code text-2xl font-extrabold tracking-wide text-emerald-100">{room.code}</h1>
+        <p className="room-header-host text-sm text-emerald-100/80">
           Host: {hostName}
           {currentPlayer?.uid === room.hostUid ? ' (you)' : ''}
         </p>
