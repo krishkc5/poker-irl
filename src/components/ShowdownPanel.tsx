@@ -83,14 +83,23 @@ export const ShowdownPanel = ({
     }))
 
   return (
-    <Panel>
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-[0.18em] text-emerald-200">
-        Showdown Settlement
-      </h2>
-      <p className="mb-3 text-sm text-slate-300">Pot: {formatChips(room.pot)}</p>
+    <Panel className="bg-[linear-gradient(180deg,rgba(13,19,17,0.95),rgba(8,12,11,0.98))]">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200/75">
+            Showdown
+          </p>
+          <h2 className="mt-1 text-xl font-semibold text-[var(--table-accent-ice)]">
+            Settlement Panel
+          </h2>
+        </div>
+        <p className="rounded-full border border-white/8 bg-black/20 px-3 py-2 text-sm text-slate-300">
+          Pot: <span className="font-semibold text-slate-100">{formatChips(room.pot)}</span>
+        </p>
+      </div>
 
       {sidePots.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-white/15 px-3 py-4 text-sm text-slate-300">
+        <p className="rounded-2xl border border-dashed border-white/12 px-3 py-4 text-sm text-slate-300">
           No side pots to settle.
         </p>
       ) : (
@@ -108,11 +117,13 @@ export const ShowdownPanel = ({
             return (
               <section
                 key={sidePot.index}
-                className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm"
+                className="rounded-[1.35rem] border border-white/8 bg-black/20 px-3 py-3 text-sm"
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <p className="font-semibold text-slate-100">{potLabel}</p>
-                  <p className="text-xs text-slate-300">{formatChips(sidePot.amount)}</p>
+                  <p className="rounded-full border border-white/8 bg-black/25 px-3 py-1 text-xs text-slate-300">
+                    {formatChips(sidePot.amount)}
+                  </p>
                 </div>
 
                 {singleWinner ? (
@@ -128,7 +139,7 @@ export const ShowdownPanel = ({
                     {eligiblePlayers.map((player) => (
                       <label
                         key={`${sidePot.index}-${player.uid}`}
-                        className="flex cursor-pointer items-center justify-between rounded-lg border border-white/10 bg-black/25 px-3 py-2"
+                        className="flex cursor-pointer items-center justify-between rounded-2xl border border-white/8 bg-black/25 px-3 py-2.5"
                       >
                         <span>{player.displayName}</span>
                         <input

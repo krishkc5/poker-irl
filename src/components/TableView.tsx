@@ -71,47 +71,18 @@ export const TableView = ({
     isPlayerAbleToAct(currentPlayer)
 
   const isHost = room.hostUid === currentUid
+  const tableHint = currentPlayer ? getActionHint(room, currentPlayer, players) : 'Join this room to play.'
+  const statusLine =
+    room.street === 'showdown'
+      ? 'The hand is at showdown. The host can settle the pot from the rail.'
+      : actingPlayer
+        ? `${actingPlayer.displayName} is acting.`
+        : 'Waiting for the next action.'
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1.2fr_1fr]">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.45fr)_380px]">
       <div className="space-y-4">
-        <Panel>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-200">
-              Table State
-            </h2>
-            <Badge tone={getStreetTone(room.street)}>{room.street}</Badge>
-          </div>
-
-          <div className="grid gap-2 text-sm text-slate-200 sm:grid-cols-2">
-            <p>
-              Pot: <span className="font-semibold">{formatChips(room.pot)}</span>
-            </p>
-            <p>
-              Bet to call: <span className="font-semibold">{formatChips(room.currentBet)}</span>
-            </p>
-            <p>
-              Hand #: <span className="font-semibold">{room.handNumber}</span>
-            </p>
-            <p>
-              Turn:{' '}
-              <span className="font-semibold">
-                {actingPlayer ? actingPlayer.displayName : room.street === 'showdown' ? 'Showdown' : 'None'}
-              </span>
-            </p>
-          </div>
-
-          <p className="mt-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-slate-300">
-            {currentPlayer ? getActionHint(room, currentPlayer, players) : 'Join this room to play.'}
-          </p>
-        </Panel>
-
-        <Panel>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-emerald-200">
-            Seats & Stacks
-          </h2>
-          <PlayersTable room={room} players={players} currentUid={currentUid} />
-        </Panel>
+        <PlayersTable room={room} players={players} currentUid={currentUid} />
 
         {canCurrentPlayerAct && currentPlayer ? (
           <ActionControls
@@ -121,9 +92,7 @@ export const TableView = ({
             error={operationError}
             onAction={onSubmitAction}
           />
-        ) : null}
-
-        {room.street === 'showdown' ? (
+        ) : room.street === 'showdown' ? (
           <ShowdownPanel
             room={room}
             players={players}
@@ -133,21 +102,63 @@ export const TableView = ({
             onSettle={onSettleShowdown}
           />
         ) : null}
+
+        {!canCurrentPlayerAct && room.street !== 'showdown' ? (
+          <Panel className="border-white/8 bg-[linear-gradient(180deg,rgba(11,17,15,0.92),rgba(8,13,12,0.98))]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-200/75">
+                  Table Pulse
+                </p>
+                <p className="mt-1 text-lg font-semibold text-[var(--table-accent-ice)]">{statusLine}</p>
+              </div>
+              <Badge tone={getStreetTone(room.street)}>{room.street}</Badge>
+            </div>
+
+            <p className="mt-3 rounded-2xl border border-white/8 bg-black/20 px-4 py-3 text-sm text-slate-300">
+              {tableHint}
+            </p>
+          </Panel>
+        ) : null}
       </div>
 
       <div className="space-y-4">
-        <Panel>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-emerald-200">
-            Hand Controls
-          </h2>
+        <Panel className="bg-[linear-gradient(180deg,rgba(12,19,17,0.95),rgba(8,12,11,0.98))]">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200/75">
+                Table Rail
+              </p>
+              <h2 className="mt-1 text-xl font-semibold text-[var(--table-accent-ice)]">Hand Controls</h2>
+            </div>
+            <Badge tone={getStreetTone(room.street)}>{room.street}</Badge>
+          </div>
+
+          <div className="mb-4 grid gap-2 text-sm text-slate-200">
+            <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Pot</p>
+              <p className="mt-1 text-lg font-semibold text-[var(--table-accent-ice)]">{formatChips(room.pot)}</p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Bet To Call</p>
+              <p className="mt-1 text-lg font-semibold text-[var(--table-accent-ice)]">{formatChips(room.currentBet)}</p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-black/20 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-slate-500">Turn</p>
+              <p className="mt-1 text-lg font-semibold text-[var(--table-accent-ice)]">
+                {actingPlayer ? actingPlayer.displayName : room.street === 'showdown' ? 'Showdown' : 'None'}
+              </p>
+            </div>
+          </div>
 
           {!isHost ? (
-            <p className="rounded-lg border border-dashed border-white/15 px-3 py-4 text-sm text-slate-300">
+            <p className="rounded-2xl border border-dashed border-white/12 px-4 py-4 text-sm text-slate-300">
               Host controls hand start, manual street advance, and hand reset.
             </p>
           ) : (
             <div className="space-y-2">
               <Button
+                className="w-full justify-start"
                 disabled={busy || room.pot > 0}
                 onClick={() => {
                   void onStartNewHand()
@@ -157,6 +168,7 @@ export const TableView = ({
               </Button>
               <Button
                 variant="secondary"
+                className="w-full justify-start"
                 disabled={busy || room.street === 'showdown'}
                 onClick={() => {
                   if (!window.confirm('Advance to the next street?')) {
@@ -170,6 +182,7 @@ export const TableView = ({
               </Button>
               <Button
                 variant="danger"
+                className="w-full justify-start"
                 disabled={busy}
                 onClick={() => {
                   if (!window.confirm('Reset current hand and refund all contributions?')) {
@@ -194,15 +207,18 @@ export const TableView = ({
 
           <div className="max-h-72 space-y-2 overflow-y-auto pr-1 text-xs text-slate-200">
             {hands.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-white/15 px-3 py-4 text-center text-slate-300">
+              <p className="rounded-2xl border border-dashed border-white/12 px-3 py-4 text-center text-slate-300">
                 No settled hands yet.
               </p>
             ) : (
               hands.map((hand) => (
-                <article key={hand.id} className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+                <article
+                  key={hand.id}
+                  className="rounded-2xl border border-white/8 bg-black/20 px-3 py-3"
+                >
                   <p className="font-semibold text-emerald-100">Hand #{hand.handNumber}</p>
-                  <p>{hand.summary}</p>
-                  <p>Pot: {formatChips(hand.pot)}</p>
+                  <p className="mt-1 text-slate-300">{hand.summary}</p>
+                  <p className="mt-1 text-slate-200">Pot: {formatChips(hand.pot)}</p>
                   <p className="text-[11px] text-slate-400">{formatTimestamp(hand.settledAt)}</p>
                 </article>
               ))

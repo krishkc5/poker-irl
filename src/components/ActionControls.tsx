@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { getLegalActions } from '../lib/gameEngine'
 import type { ActionInput, PlayerDoc, RoomDoc } from '../types/game'
 import { formatChips } from '../utils/format'
@@ -31,6 +31,15 @@ export const ActionControls = ({
 
   const isRaiseMode = room.currentBet > 0
 
+  useEffect(() => {
+    if (isRaiseMode) {
+      setAmount(legal.minimumRaiseTo.toString())
+      return
+    }
+
+    setAmount(legal.minimumBet.toString())
+  }, [isRaiseMode, legal.minimumBet, legal.minimumRaiseTo])
+
   const submit = async (type: ActionInput['type']) => {
     if (type === 'bet' || type === 'raise') {
       const parsed = Number.parseInt(amount, 10)
@@ -42,38 +51,61 @@ export const ActionControls = ({
   }
 
   return (
-    <Panel>
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-200">Your Action</h2>
-        <p className="text-xs text-slate-300">
+    <Panel className="bg-[linear-gradient(180deg,rgba(13,19,17,0.95),rgba(7,11,10,0.98))]">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200/75">
+            Action Dock
+          </p>
+          <h2 className="mt-1 text-xl font-semibold text-[var(--table-accent-ice)]">
+            Your move, {currentPlayer.displayName}
+          </h2>
+        </div>
+        <p className="rounded-full border border-white/8 bg-black/20 px-3 py-2 text-xs text-slate-300">
           To call: <span className="font-semibold text-slate-100">{formatChips(legal.amountToCall)}</span>
         </p>
       </div>
 
       {error ? <ErrorBanner message={error} /> : null}
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <Button disabled={!legal.canCheck || busy} onClick={() => void submit('check')}>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Button className="h-12" disabled={!legal.canCheck || busy} onClick={() => void submit('check')}>
           Check
         </Button>
-        <Button disabled={!legal.canCall || busy} onClick={() => void submit('call')}>
+        <Button className="h-12" disabled={!legal.canCall || busy} onClick={() => void submit('call')}>
           Call
         </Button>
-        <Button variant="danger" disabled={!legal.canFold || busy} onClick={() => void submit('fold')}>
+        <Button
+          className="h-12"
+          variant="danger"
+          disabled={!legal.canFold || busy}
+          onClick={() => void submit('fold')}
+        >
           Fold
         </Button>
-        <Button variant="secondary" disabled={!legal.canAllIn || busy} onClick={() => void submit('all_in')}>
+        <Button
+          className="h-12"
+          variant="secondary"
+          disabled={!legal.canAllIn || busy}
+          onClick={() => void submit('all_in')}
+        >
           All In
         </Button>
       </div>
 
-      <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-3">
-        <label className="mb-1 block text-xs text-slate-300" htmlFor="bet-amount">
-          {isRaiseMode
-            ? `Raise to (min ${formatChips(legal.minimumRaiseTo)})`
-            : `Bet amount (min ${formatChips(legal.minimumBet)})`}
-        </label>
-        <div className="flex gap-2">
+      <div className="mt-4 rounded-[1.4rem] border border-white/8 bg-black/20 p-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <label className="block text-xs text-slate-300" htmlFor="bet-amount">
+            {isRaiseMode
+              ? `Raise to (min ${formatChips(legal.minimumRaiseTo)})`
+              : `Bet amount (min ${formatChips(legal.minimumBet)})`}
+          </label>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500">
+            Max {formatChips(legal.maxTotalContribution)}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row">
           <NumberInput
             id="bet-amount"
             min={isRaiseMode ? legal.minimumRaiseTo : legal.minimumBet}
@@ -82,12 +114,34 @@ export const ActionControls = ({
             onChange={(event) => setAmount(event.target.value)}
           />
           <Button
+            className="h-12 min-w-[9rem]"
             variant="secondary"
             disabled={busy || (isRaiseMode ? !legal.canRaise : !legal.canBet)}
             onClick={() => void submit(isRaiseMode ? 'raise' : 'bet')}
           >
-            {isRaiseMode ? 'Raise' : 'Bet'}
+            {isRaiseMode ? 'Confirm Raise' : 'Place Bet'}
           </Button>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-300 sm:grid-cols-3">
+        <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-3">
+          <p className="uppercase tracking-[0.16em] text-slate-500">Stack Behind</p>
+          <p className="mt-1 text-base font-semibold text-[var(--table-accent-ice)]">
+            {formatChips(currentPlayer.stack)}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-3">
+          <p className="uppercase tracking-[0.16em] text-slate-500">Street In</p>
+          <p className="mt-1 text-base font-semibold text-[var(--table-accent-ice)]">
+            {formatChips(currentPlayer.currentStreetContribution)}
+          </p>
+        </div>
+        <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-3">
+          <p className="uppercase tracking-[0.16em] text-slate-500">Hand In</p>
+          <p className="mt-1 text-base font-semibold text-[var(--table-accent-ice)]">
+            {formatChips(currentPlayer.totalHandContribution)}
+          </p>
         </div>
       </div>
     </Panel>

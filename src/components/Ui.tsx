@@ -2,8 +2,8 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react
 import { cn } from '../lib/cn'
 
 export const PageContainer = ({ children }: { children: ReactNode }) => (
-  <div className="min-h-screen bg-gradient-to-br from-felt-900 via-felt-800 to-emerald-900 px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
-    <div className="mx-auto w-full max-w-6xl">{children}</div>
+  <div className="min-h-screen px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
+    <div className="mx-auto w-full max-w-[1400px]">{children}</div>
   </div>
 )
 
@@ -16,7 +16,7 @@ export const Panel = ({
 }) => (
   <section
     className={cn(
-      'rounded-2xl border border-white/10 bg-emerald-950/45 p-4 shadow-table backdrop-blur sm:p-5',
+      'poker-noise rounded-[1.75rem] border border-white/8 bg-[linear-gradient(180deg,rgba(12,21,18,0.9),rgba(8,14,13,0.94))] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.34)] backdrop-blur sm:p-5',
       className,
     )}
   >
@@ -31,11 +31,14 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 export const Button = ({ variant = 'primary', className, ...props }: ButtonProps) => (
   <button
     className={cn(
-      'inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-45',
-      variant === 'primary' && 'bg-emerald-400 text-emerald-950 hover:bg-emerald-300',
-      variant === 'secondary' && 'bg-slate-700 text-slate-50 hover:bg-slate-600',
-      variant === 'danger' && 'bg-rose-500 text-white hover:bg-rose-400',
-      variant === 'ghost' && 'border border-white/20 bg-transparent text-slate-100 hover:bg-white/10',
+      'inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold tracking-[0.02em] transition disabled:cursor-not-allowed disabled:opacity-45',
+      variant === 'primary' &&
+        'border-emerald-300/30 bg-[linear-gradient(180deg,#5fe1aa,#2fb97a)] text-emerald-950 hover:brightness-105',
+      variant === 'secondary' &&
+        'border-white/10 bg-[linear-gradient(180deg,rgba(29,37,35,0.98),rgba(14,19,18,0.98))] text-slate-100 hover:bg-[linear-gradient(180deg,rgba(38,46,44,0.98),rgba(18,24,22,0.98))]',
+      variant === 'danger' &&
+        'border-rose-300/20 bg-[linear-gradient(180deg,#ef6b60,#cf4d45)] text-white hover:brightness-105',
+      variant === 'ghost' && 'border-white/12 bg-transparent text-slate-100 hover:bg-white/8',
       className,
     )}
     {...props}
@@ -45,7 +48,7 @@ export const Button = ({ variant = 'primary', className, ...props }: ButtonProps
 export const TextInput = ({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) => (
   <input
     className={cn(
-      'w-full rounded-lg border border-white/15 bg-black/20 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-400 focus:border-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-300',
+      'w-full rounded-xl border border-white/12 bg-black/30 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-300 focus:outline-none focus:ring-1 focus:ring-emerald-300',
       className,
     )}
     {...props}
@@ -65,11 +68,11 @@ export const Badge = ({
 }) => (
   <span
     className={cn(
-      'inline-flex rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide',
-      tone === 'neutral' && 'bg-slate-600/60 text-slate-100',
-      tone === 'success' && 'bg-emerald-300/20 text-emerald-100',
-      tone === 'warning' && 'bg-amber-300/20 text-amber-100',
-      tone === 'danger' && 'bg-rose-300/20 text-rose-100',
+      'inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
+      tone === 'neutral' && 'border-white/10 bg-slate-700/40 text-slate-100',
+      tone === 'success' && 'border-emerald-300/20 bg-emerald-300/12 text-emerald-100',
+      tone === 'warning' && 'border-amber-300/20 bg-amber-300/12 text-amber-100',
+      tone === 'danger' && 'border-rose-300/20 bg-rose-300/12 text-rose-100',
     )}
   >
     {children}
@@ -77,7 +80,7 @@ export const Badge = ({
 )
 
 export const ErrorBanner = ({ message }: { message: string }) => (
-  <div className="rounded-lg border border-rose-400/40 bg-rose-600/20 px-3 py-2 text-sm text-rose-100">
+  <div className="rounded-xl border border-rose-400/35 bg-rose-600/16 px-3 py-2 text-sm text-rose-100">
     {message}
   </div>
 )
