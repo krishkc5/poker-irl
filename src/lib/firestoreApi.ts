@@ -1348,7 +1348,8 @@ export const submitAction = async ({
     let winnersUids = room.winnersUids
     let handWasSettled = false
     let actorContribution = 0
-    let transitionMessage: string | null = null
+    let actorMessage: string | null = null
+    let systemMessage: string | null = null
 
     switch (input.type) {
       case 'check': {
@@ -1357,7 +1358,7 @@ export const submitAction = async ({
         }
 
         actor.hasActedThisStreet = true
-        transitionMessage = `${actor.displayName} checks.`
+        actorMessage = `${actor.displayName} checks.`
         break
       }
 
@@ -1378,7 +1379,7 @@ export const submitAction = async ({
           actor.allIn = true
         }
 
-        transitionMessage =
+        actorMessage =
           callAmount < amountToCall
             ? `${actor.displayName} calls all-in for ${callAmount}.`
             : `${actor.displayName} calls ${callAmount}.`
@@ -1415,7 +1416,7 @@ export const submitAction = async ({
         }
 
         resetOtherActionablePlayers()
-        transitionMessage = `${actor.displayName} bets ${betAmount}.`
+        actorMessage = `${actor.displayName} bets ${betAmount}.`
         break
       }
 
@@ -1455,7 +1456,7 @@ export const submitAction = async ({
         }
 
         resetOtherActionablePlayers()
-        transitionMessage = `${actor.displayName} raises to ${raiseTo}.`
+        actorMessage = `${actor.displayName} raises to ${raiseTo}.`
         break
       }
 
@@ -1467,7 +1468,7 @@ export const submitAction = async ({
         actor.folded = true
         actor.inHand = false
         actor.hasActedThisStreet = true
-        transitionMessage = `${actor.displayName} folds.`
+        actorMessage = `${actor.displayName} folds.`
         break
       }
 
@@ -1508,7 +1509,7 @@ export const submitAction = async ({
           }
         }
 
-        transitionMessage = `${actor.displayName} goes all-in for ${committed}.`
+        actorMessage = `${actor.displayName} goes all-in for ${committed}.`
         break
       }
 
@@ -1522,7 +1523,7 @@ export const submitAction = async ({
     if (hasSingleRemainingPlayer(playersAfterAction) && remainingPlayers.length === 1) {
       handWasSettled = true
       winnersUids = [remainingPlayers[0].uid]
-      transitionMessage = settleSingleWinnerWithoutShowdown({
+      settleSingleWinnerWithoutShowdown({
         roomCode: normalizedCode,
         transaction,
         room: {
@@ -1564,8 +1565,7 @@ export const submitAction = async ({
             player.hasActedThisStreet = false
           })
 
-          transitionMessage =
-            transitionMessage ?? 'No further betting is possible. Proceed to showdown.'
+          systemMessage = 'No further betting is possible. Proceed to showdown.'
         } else {
           const nextStreet = getNextStreet(street)
 
@@ -1581,7 +1581,7 @@ export const submitAction = async ({
               player.hasActedThisStreet = false
             })
 
-            transitionMessage = transitionMessage ?? 'Betting complete. Move to showdown.'
+            systemMessage = 'Betting complete. Move to showdown.'
           } else {
             street = nextStreet
             currentBet = 0
@@ -1599,7 +1599,7 @@ export const submitAction = async ({
 
             currentTurnSeat = getFirstPostFlopActingSeat(playersAfterAction, room.dealerSeat)
 
-            transitionMessage = `${transitionMessage ?? 'Action complete.'} Street advanced to ${nextStreet}.`
+            systemMessage = `Street advanced to ${nextStreet}.`
           }
         }
       } else {
@@ -1610,7 +1610,7 @@ export const submitAction = async ({
           currentBet = 0
           minRaise = room.bigBlind
           lastAggressorSeat = null
-          transitionMessage = `${transitionMessage ?? 'Action complete.'} All players are all-in. Proceed to showdown.`
+          systemMessage = 'All players are all-in. Proceed to showdown.'
         }
       }
 
@@ -1634,7 +1634,7 @@ export const submitAction = async ({
         street,
         winnersUids,
         lastAggressorSeat,
-        lastAction: transitionMessage,
+        lastAction: systemMessage ?? actorMessage ?? `${actor.displayName} acted.`,
         updatedAt: serverTimestamp(),
       })
     }
@@ -1646,10 +1646,10 @@ export const submitAction = async ({
       amount: actorContribution,
       handNumber: room.handNumber,
       street: room.street,
-      message: transitionMessage ?? `${actor.displayName} acted.`,
+      message: actorMessage ?? `${actor.displayName} acted.`,
     })
 
-    if (!handWasSettled && transitionMessage && transitionMessage.includes('Street advanced')) {
+    if (!handWasSettled && systemMessage) {
       addAction(transaction, normalizedCode, {
         uid: null,
         displayName: 'System',
@@ -1657,13 +1657,17 @@ export const submitAction = async ({
         amount: 0,
         handNumber: room.handNumber,
         street,
-        message: transitionMessage,
+        message: systemMessage,
       })
     }
   })
 }
 
 export const getActionHint = (room: RoomDoc, player: PlayerDoc, players: PlayerDoc[]): string => {
+  if (room.street === 'showdown') {
+    return 'Waiting for showdown settlement.'
+  }
+
   const legal = getLegalActions(room, player)
   const toCall = getAmountToCall(room, player)
 

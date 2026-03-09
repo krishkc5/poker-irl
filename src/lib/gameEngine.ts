@@ -304,9 +304,10 @@ export const calculateSidePots = (players: PlayerDoc[]): SidePot[] => {
     return []
   }
 
-  const levels = Array.from(
+  const allInLevels = Array.from(
     new Set(
       contributors
+        .filter((player) => player.allIn)
         .map((player) => Math.trunc(player.totalHandContribution))
         .filter((contribution) => contribution > 0),
     ),
@@ -315,24 +316,31 @@ export const calculateSidePots = (players: PlayerDoc[]): SidePot[] => {
   const pots: SidePot[] = []
   let previousLevel = 0
 
-  for (const level of levels) {
-    const layer = level - previousLevel
-    if (layer <= 0) {
-      previousLevel = level
-      continue
+  const addPotLayer = (capLevel: number | null) => {
+    const participants = contributors.filter(
+      (player) => Math.trunc(player.totalHandContribution) > previousLevel,
+    )
+
+    if (!participants.length) {
+      return
     }
 
-    const participants = contributors.filter((player) => player.totalHandContribution >= level)
-    const eligibleUids = participants
-      .filter((player) => player.inHand && !player.folded)
+    const amount = participants.reduce((total, player) => {
+      const contribution = Math.trunc(player.totalHandContribution)
+      const cappedContribution = capLevel === null ? contribution : Math.min(contribution, capLevel)
+      return total + Math.max(0, cappedContribution - previousLevel)
+    }, 0)
+
+    if (amount <= 0) {
+      return
+    }
+
+    const eligibleUids = contributors
+      .filter(
+        (player) => Math.trunc(player.totalHandContribution) > previousLevel && player.inHand && !player.folded,
+      )
       .sort((a, b) => (a.seat ?? Number.MAX_SAFE_INTEGER) - (b.seat ?? Number.MAX_SAFE_INTEGER))
       .map((player) => player.uid)
-
-    const amount = layer * participants.length
-    if (amount <= 0) {
-      previousLevel = level
-      continue
-    }
 
     if (eligibleUids.length === 0) {
       // If a contribution layer has no eligible contenders (edge-case dirty state),
@@ -341,20 +349,26 @@ export const calculateSidePots = (players: PlayerDoc[]): SidePot[] => {
         pots[pots.length - 1].amount += amount
       }
 
-      previousLevel = level
+      return
+    }
+
+    pots.push({
+      index: pots.length,
+      amount,
+      eligibleUids,
+    })
+  }
+
+  for (const level of allInLevels) {
+    if (level <= previousLevel) {
       continue
     }
 
-    if (amount > 0) {
-      pots.push({
-        index: pots.length,
-        amount,
-        eligibleUids,
-      })
-    }
-
+    addPotLayer(level)
     previousLevel = level
   }
+
+  addPotLayer(null)
 
   return pots
 }
