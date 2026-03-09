@@ -230,10 +230,10 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
   const { smallBlindSeat, bigBlindSeat } = getBlindSeats(room, seatedPlayers)
 
   return (
-    <section className="poker-noise relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,14,0.94),rgba(6,10,9,0.98))] px-4 py-5 shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
+    <section className="table-arena-card poker-noise relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,14,0.94),rgba(6,10,9,0.98))] px-4 py-5 shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(70,171,111,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_22%)]" />
 
-      <div className="relative min-h-[620px] sm:min-h-[700px]">
+      <div className="table-arena-stage relative min-h-[620px] sm:min-h-[700px]">
         <div className="poker-table-shell absolute left-1/2 top-1/2 h-[43%] w-[84%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] p-4 sm:h-[46%] sm:w-[78%] sm:p-5">
           <div className="poker-table-felt poker-noise relative flex h-full w-full flex-col items-center justify-center rounded-[999px] border border-white/10 px-5 text-center">
             <div className="poker-center-chip mb-4 rounded-full border border-amber-100/60 px-5 py-2 text-center text-amber-950">
@@ -277,7 +277,7 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
             <article
               key={player.uid}
               className={cn(
-                'absolute -translate-x-1/2 -translate-y-1/2',
+                'table-seat-wrap absolute -translate-x-1/2 -translate-y-1/2',
                 compactSeat ? 'w-[9rem] sm:w-[9.75rem]' : 'w-[10rem] sm:w-[11.5rem]',
               )}
               style={{
@@ -285,11 +285,13 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
                 top: `${seatPoint.top}%`,
               }}
             >
-              <TableCards visible={cardsVisible} showdown={revealCards} />
+              <div className="table-seat-cards">
+                <TableCards visible={cardsVisible} showdown={revealCards} />
+              </div>
 
               <div
                 className={cn(
-                  'poker-seat-card rounded-[1.45rem] border px-3 py-3 text-slate-100 transition',
+                  'table-seat-body poker-seat-card rounded-[1.45rem] border px-3 py-3 text-slate-100 transition',
                   isCurrentUser && 'border-emerald-300/45 ring-2 ring-emerald-300/20',
                   isTurn && 'border-amber-300/50 ring-2 ring-amber-300/20',
                   player.folded && 'border-white/8 opacity-60 saturate-50',
@@ -332,11 +334,13 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
                 </div>
               </div>
 
-              <TableButtonRow
-                dealer={isDealer}
-                smallBlind={isSmallBlind}
-                bigBlind={isBigBlind}
-              />
+              <div className="table-seat-buttons">
+                <TableButtonRow
+                  dealer={isDealer}
+                  smallBlind={isSmallBlind}
+                  bigBlind={isBigBlind}
+                />
+              </div>
             </article>
           )
         })}

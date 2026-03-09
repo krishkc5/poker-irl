@@ -40,7 +40,7 @@ export const RoomHeader = ({ room, players, currentUid, onLeave }: RoomHeaderPro
   }
 
   return (
-    <Panel className="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <Panel className="room-header-shell mb-4 flex flex-wrap items-center justify-between gap-3">
       <div>
         <p className="text-xs uppercase tracking-[0.2em] text-emerald-200/80">Room</p>
         <h1 className="text-2xl font-extrabold tracking-wide text-emerald-100">{room.code}</h1>
@@ -50,7 +50,7 @@ export const RoomHeader = ({ room, players, currentUid, onLeave }: RoomHeaderPro
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="room-header-actions flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={handleCopy}>
           {copied ? 'Copied' : 'Copy Code'}
         </Button>

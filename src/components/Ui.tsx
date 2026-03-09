@@ -2,8 +2,8 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react
 import { cn } from '../lib/cn'
 
 export const PageContainer = ({ children }: { children: ReactNode }) => (
-  <div className="min-h-screen px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
-    <div className="mx-auto w-full max-w-[1400px]">{children}</div>
+  <div className="page-shell min-h-dvh px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
+    <div className="page-shell-inner mx-auto w-full max-w-[1400px]">{children}</div>
   </div>
 )
 

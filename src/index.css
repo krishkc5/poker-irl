@@ -43,6 +43,153 @@ body {
   min-height: 100vh;
 }
 
+.table-view-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'table'
+    'interaction'
+    'rail';
+}
+
+.table-view-main {
+  grid-area: table;
+  min-width: 0;
+}
+
+.table-view-interaction {
+  grid-area: interaction;
+  min-width: 0;
+}
+
+.table-view-rail {
+  grid-area: rail;
+  min-width: 0;
+}
+
+.table-arena-stage {
+  min-height: 620px;
+}
+
+@media (min-width: 1280px) {
+  .table-view-grid {
+    grid-template-columns: minmax(0, 1.45fr) 380px;
+    grid-template-areas:
+      'table rail'
+      'interaction rail';
+    align-items: start;
+  }
+}
+
+@media (max-width: 1180px) and (orientation: landscape) {
+  .page-shell {
+    padding: 0.75rem;
+  }
+
+  .page-shell-inner {
+    max-width: none;
+  }
+
+  .room-header-shell {
+    margin-bottom: 0.75rem;
+    padding: 0.95rem 1rem;
+  }
+
+  .room-header-shell h1 {
+    font-size: 1.65rem;
+    line-height: 1;
+  }
+
+  .room-header-actions {
+    gap: 0.5rem;
+  }
+
+  .table-view-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 35vw);
+    grid-template-areas:
+      'table rail'
+      'table interaction';
+    align-items: start;
+  }
+
+  .table-view-rail {
+    max-height: calc(100dvh - 6.5rem);
+    overflow-y: auto;
+    padding-right: 0.2rem;
+  }
+
+  .table-arena-card {
+    padding: 0.9rem;
+  }
+
+  .table-arena-stage {
+    min-height: clamp(320px, calc(100dvh - 7.5rem), 540px);
+  }
+
+  .table-seat-wrap {
+    width: clamp(7.8rem, 13vw, 9rem);
+  }
+
+  .table-seat-body {
+    border-radius: 1.2rem;
+    padding: 0.65rem;
+  }
+
+  .table-seat-body p,
+  .table-seat-body span {
+    line-height: 1.2;
+  }
+
+  .table-seat-cards > div {
+    top: -1.65rem;
+  }
+
+  .table-seat-cards > div > div {
+    height: 2.5rem;
+    width: 1.65rem;
+  }
+
+  .table-seat-buttons > div {
+    bottom: -0.85rem;
+  }
+
+  .action-log-scroll {
+    max-height: 11rem;
+  }
+
+  .table-history-scroll {
+    max-height: 9.5rem;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .table-view-grid {
+    gap: 0.75rem;
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 38vw);
+  }
+
+  .room-header-shell {
+    gap: 0.75rem;
+  }
+
+  .room-header-actions button {
+    padding: 0.65rem 0.9rem;
+  }
+
+  .table-arena-stage {
+    min-height: clamp(300px, calc(100dvh - 7rem), 460px);
+  }
+
+  .table-seat-wrap {
+    width: clamp(7rem, 12vw, 8.2rem);
+  }
+
+  .table-seat-body {
+    padding: 0.55rem;
+  }
+}
+
 .poker-noise {
   position: relative;
 }
