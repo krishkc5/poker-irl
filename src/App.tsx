@@ -1,32 +1,13 @@
-import { useEffect, useState } from "react";
-import { auth } from "./firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { LandingPage } from './pages/LandingPage'
+import { RoomPage } from './pages/RoomPage'
 
-function App() {
-  const [uid, setUid] = useState<string>("loading...");
+const App = () => (
+  <Routes>
+    <Route path="/" element={<LandingPage />} />
+    <Route path="/room/:roomCode" element={<RoomPage />} />
+    <Route path="*" element={<Navigate to="/" replace />} />
+  </Routes>
+)
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUid(user.uid);
-        console.log("Signed in anonymously:", user.uid);
-      } else {
-        setUid("not signed in");
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  return (
-    <div style={{ padding: "2rem", fontFamily: "Arial, sans-serif" }}>
-      <h1>Poker IRL</h1>
-      <p>Firebase connection test</p>
-      <p>
-        <strong>User UID:</strong> {uid}
-      </p>
-    </div>
-  );
-}
-
-export default App;
+export default App

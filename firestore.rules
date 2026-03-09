@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function roomPath(roomCode) {
+      return /databases/$(database)/documents/rooms/$(roomCode);
+    }
+
+    function roomExists(roomCode) {
+      return exists(roomPath(roomCode));
+    }
+
+    function roomData(roomCode) {
+      return get(roomPath(roomCode)).data;
+    }
+
+    function isRoomMember(roomCode) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/rooms/$(roomCode)/players/$(request.auth.uid));
+    }
+
+    function isRoomHost(roomCode) {
+      return isSignedIn()
+        && roomExists(roomCode)
+        && roomData(roomCode).hostUid == request.auth.uid;
+    }
+
+    match /rooms/{roomCode} {
+      // Lobby room doc read is allowed for authenticated users so they can join by code.
+      allow read: if isSignedIn() && (isRoomMember(roomCode) || (roomExists(roomCode) && roomData(roomCode).status == 'lobby'));
+      allow create: if isSignedIn() && request.resource.data.hostUid == request.auth.uid;
+      allow update, delete: if isRoomHost(roomCode);
+
+      match /players/{uid} {
+        allow read: if isRoomMember(roomCode);
+
+        allow create: if isSignedIn()
+          && request.auth.uid == uid
+          && roomExists(roomCode)
+          && roomData(roomCode).status == 'lobby';
+
+        allow update: if isSignedIn() && (request.auth.uid == uid || isRoomHost(roomCode));
+        allow delete: if isSignedIn() && (request.auth.uid == uid || isRoomHost(roomCode));
+      }
+
+      match /actions/{actionId} {
+        allow read: if isRoomMember(roomCode);
+        allow create: if isRoomMember(roomCode);
+        allow update, delete: if false;
+      }
+
+      match /hands/{handId} {
+        allow read: if isRoomMember(roomCode);
+        allow create: if isRoomHost(roomCode);
+        allow update, delete: if false;
+      }
+    }
+  }
+}

@@ -1,73 +1,240 @@
-# React + TypeScript + Vite
+# Poker IRL
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Poker IRL is a real-life poker companion app for friends playing in person with a physical deck of cards.
 
-Currently, two official plugins are available:
+The app does **not** handle cards. It tracks room state, players, chips, betting actions, turn order, pot, blinds, hand progression, and showdown settlement.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Live URL
 
-## React Compiler
+GitHub Pages target:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- https://krishkc5.github.io/poker-irl/
 
-## Expanding the ESLint configuration
+## MVP Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Anonymous Firebase auth on app load
+- Landing page with create room and join by 6-letter room code
+- Room creation with collision-resistant uppercase code generation
+- Realtime lobby (Firestore `onSnapshot`) with host/player list
+- Host controls in lobby:
+  - starting stack
+  - small blind
+  - big blind
+  - auto-assign seats
+  - remove players
+  - start game (2+ players)
+- Table view with seat-ordered players and live state:
+  - stack
+  - folded/all-in status
+  - dealer and current turn indicators
+  - pot and current bet
+  - street (`preflop`, `flop`, `turn`, `river`, `showdown`)
+- Betting actions:
+  - check
+  - call
+  - bet
+  - raise
+  - fold
+  - all-in
+- Hand flow:
+  - dealer rotation
+  - automatic blind posting
+  - street progression
+  - host manual street advance and hand reset
+  - host start next hand
+- Showdown settlement:
+  - single winner
+  - even split among selected winners
+- Realtime action log and hand history archive
+- GitHub Pages deployment via GitHub Actions
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Non-Goals (v1)
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- No deck or card management
+- No hidden cards or board cards
+- No hand ranking
+- No odds calculator
+- No side-pot support
+- No backend server
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Tech Stack
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Firebase Web SDK
+- Firebase Anonymous Auth
+- Cloud Firestore
+- GitHub Pages + GitHub Actions
+
+## Project Structure
+
+```text
+src/
+  components/
+  firebase/
+  hooks/
+  lib/
+  pages/
+  types/
+  utils/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Local Setup
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 1. Install dependencies
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
 ```
+
+### 2. Configure environment variables
+
+Copy `.env.example` to `.env` and fill all values:
+
+```bash
+cp .env.example .env
+```
+
+Required variables:
+
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+
+### 3. Run locally
+
+```bash
+npm run dev
+```
+
+### 4. Production build
+
+```bash
+npm run build
+npm run preview
+```
+
+## Firebase Setup Checklist
+
+1. Firebase project exists.
+2. Anonymous auth is enabled.
+3. Cloud Firestore is enabled.
+4. Deploy `firestore.rules` from this repo.
+5. Add all `VITE_FIREBASE_*` variables locally and in GitHub repository secrets.
+
+## Firestore Schema
+
+### Room document
+
+`rooms/{roomCode}`
+
+Fields include:
+
+- `code`
+- `hostUid`
+- `status`
+- `createdAt`
+- `updatedAt`
+- `startingStack`
+- `smallBlind`
+- `bigBlind`
+- `dealerSeat`
+- `currentTurnSeat`
+- `currentBet`
+- `minRaise`
+- `pot`
+- `handNumber`
+- `street`
+- `gameStarted`
+- `lastAction`
+- `winnersUids`
+- `lastAggressorSeat`
+
+### Players subcollection
+
+`rooms/{roomCode}/players/{uid}`
+
+- `uid`
+- `displayName`
+- `seat`
+- `stack`
+- `folded`
+- `allIn`
+- `inHand`
+- `currentStreetContribution`
+- `totalHandContribution`
+- `hasActedThisStreet`
+- `joinedAt`
+- `isHost`
+
+### Actions subcollection
+
+`rooms/{roomCode}/actions/{actionId}`
+
+- `uid`
+- `displayName`
+- `type`
+- `amount`
+- `createdAt`
+- `handNumber`
+- `street`
+- `message`
+
+### Hands subcollection
+
+`rooms/{roomCode}/hands/{handId}`
+
+- `handNumber`
+- `settledAt`
+- `winners` (uid + displayName)
+- `pot`
+- `summary`
+- `actions` (string summary lines)
+
+## Security Rules Summary
+
+`firestore.rules` includes MVP-focused rules:
+
+- Auth required for all access
+- Host-only room-level updates/deletes
+- Players can update/delete only their own player doc
+- Host can manage any player doc in room
+- Actions are append-only by room members
+- Hands can be created only by host
+
+Practical join-flow tradeoff:
+
+- Authenticated users can read lobby room docs to validate/join by code
+- Player/action/hand data remains member-only
+
+## GitHub Pages Deployment
+
+- Vite base path is configured as `/poker-irl/` in `vite.config.ts`
+- Workflow file: `.github/workflows/deploy.yml`
+- Workflow expects Firebase values in GitHub repository secrets:
+  - `VITE_FIREBASE_API_KEY`
+  - `VITE_FIREBASE_AUTH_DOMAIN`
+  - `VITE_FIREBASE_PROJECT_ID`
+  - `VITE_FIREBASE_STORAGE_BUCKET`
+  - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+  - `VITE_FIREBASE_APP_ID`
+
+## Known Limitations
+
+- No side-pot logic in v1
+- Anonymous auth only (no account linking)
+- Room cleanup for nested subcollections is not automatic when a room is deleted
+- Security rules are practical MVP rules, not anti-cheat hardened
+
+## Future Improvements
+
+- Side pots and deeper all-in handling
+- Better reconnect/resume UX for dropped clients
+- Host transfer controls and moderation tools
+- Optional read-only spectator mode
+- Offline-first support and optimistic UI enhancements

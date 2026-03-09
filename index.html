@@ -2,12 +2,30 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>poker-irl</title>
+    <title>Poker IRL</title>
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      ;(function (location) {
+        if (!location.search || location.search[1] !== '/') {
+          return
+        }
+
+        const decoded = location.search
+          .slice(1)
+          .split('&')
+          .map((part) => part.replace(/~and~/g, '&'))
+          .join('?')
+
+        window.history.replaceState(
+          null,
+          '',
+          location.pathname.slice(0, -1) + decoded + location.hash,
+        )
+      })(window.location)
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
