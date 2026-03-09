@@ -86,6 +86,11 @@ export const useRoomData = (roomCode: string): RoomDataState => {
         setHands(nextHands)
       },
       (snapshotError) => {
+        if (snapshotError.code === 'permission-denied') {
+          setHands([])
+          return
+        }
+
         setError(snapshotError.message)
       },
     )

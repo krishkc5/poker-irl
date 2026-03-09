@@ -1,4 +1,5 @@
 import {
+  addDoc,
   collection,
   doc,
   getDocs,
@@ -969,7 +970,14 @@ export const settleShowdown = async ({
     throw new Error('Select at least one winner.')
   }
 
-  await runTransaction(db, async (transaction) => {
+  type HandHistoryPayload = {
+    handNumber: number
+    winners: Array<{ uid: string; displayName: string }>
+    pot: number
+    summary: string
+  }
+
+  const handHistoryPayload = await runTransaction<HandHistoryPayload>(db, async (transaction) => {
     const roomRef = getRoomRef(normalizedCode)
     const roomSnapshot = await transaction.get(roomRef)
     if (!roomSnapshot.exists()) {
@@ -1021,24 +1029,12 @@ export const settleShowdown = async ({
         ? `${winnerNames} won ${room.pot} chips.`
         : `${winnerNames} split ${room.pot} chips.`
 
-    const actionsSnapshot = await getDocs(
-      query(getActionsCollection(normalizedCode), orderBy('createdAt', 'asc'), limit(MAX_ACTIONS)),
-    )
-    const actionLines = actionsSnapshot.docs
-      .map(asActionDoc)
-      .filter((action) => action.handNumber === room.handNumber)
-      .map((action) => action.message)
-      .slice(-15)
-
-    const handRef = doc(getHandsCollection(normalizedCode))
-    transaction.set(handRef, {
+    const payload: HandHistoryPayload = {
       handNumber: room.handNumber,
-      settledAt: serverTimestamp(),
       winners: winners.map((winner) => ({ uid: winner.uid, displayName: winner.displayName })),
       pot: room.pot,
       summary,
-      actions: actionLines,
-    })
+    }
 
     transaction.update(roomRef, {
       pot: 0,
@@ -1059,7 +1055,42 @@ export const settleShowdown = async ({
       street: 'showdown',
       message: summary,
     })
+
+    return payload
   })
+
+  // Hand history is best-effort and should not block pot settlement.
+  const payload = handHistoryPayload
+
+  try {
+    const actionsSnapshot = await getDocs(
+      query(getActionsCollection(normalizedCode), orderBy('createdAt', 'asc'), limit(MAX_ACTIONS)),
+    )
+    const actionLines = actionsSnapshot.docs
+      .map(asActionDoc)
+      .filter((action) => action.handNumber === payload.handNumber)
+      .map((action) => action.message)
+      .slice(-15)
+
+    await addDoc(getHandsCollection(normalizedCode), {
+      handNumber: payload.handNumber,
+      settledAt: serverTimestamp(),
+      winners: payload.winners,
+      pot: payload.pot,
+      summary: payload.summary,
+      actions: actionLines,
+    })
+  } catch (error) {
+    const isPermissionDenied =
+      typeof error === 'object' &&
+      error !== null &&
+      'code' in error &&
+      String((error as { code: unknown }).code).includes('permission-denied')
+
+    if (!isPermissionDenied) {
+      throw error
+    }
+  }
 }
 
 const settleSingleWinnerWithoutShowdown = ({
