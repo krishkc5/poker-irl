@@ -329,7 +329,23 @@ export const calculateSidePots = (players: PlayerDoc[]): SidePot[] => {
       .map((player) => player.uid)
 
     const amount = layer * participants.length
-    if (amount > 0 && eligibleUids.length > 0) {
+    if (amount <= 0) {
+      previousLevel = level
+      continue
+    }
+
+    if (eligibleUids.length === 0) {
+      // If a contribution layer has no eligible contenders (edge-case dirty state),
+      // roll it into the most recent eligible pot so chips are not orphaned.
+      if (pots.length > 0) {
+        pots[pots.length - 1].amount += amount
+      }
+
+      previousLevel = level
+      continue
+    }
+
+    if (amount > 0) {
       pots.push({
         index: pots.length,
         amount,

@@ -1055,8 +1055,19 @@ export const settleShowdown = async ({
     }
 
     const derivedPot = sidePots.reduce((total, sidePot) => total + sidePot.amount, 0)
-    if (derivedPot !== room.pot) {
-      throw new Error('Pot mismatch detected. Please reset hand and try again.')
+    const difference = room.pot - derivedPot
+
+    if (difference !== 0) {
+      const lastPot = sidePots[sidePots.length - 1]
+      const adjustedLastAmount = lastPot.amount + difference
+      if (adjustedLastAmount <= 0) {
+        throw new Error('Pot mismatch detected. Please reset hand and try again.')
+      }
+
+      sidePots[sidePots.length - 1] = {
+        ...lastPot,
+        amount: adjustedLastAmount,
+      }
     }
 
     const contenderMap = new Map(contenders.map((player) => [player.uid, player]))
