@@ -254,8 +254,8 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
     return () => media.removeListener(sync)
   }, [])
 
-  const seatSpreadX = isCompactLandscape ? 0.72 : 1
-  const seatSpreadY = isCompactLandscape ? 0.52 : 1
+  const seatSpreadX = isCompactLandscape ? 0.58 : 1
+  const seatSpreadY = isCompactLandscape ? 0.24 : 1
 
   return (
     <section className="table-arena-card poker-noise relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,14,0.94),rgba(6,10,9,0.98))] px-4 py-5 shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
