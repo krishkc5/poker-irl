@@ -35,6 +35,7 @@ import {
   getAmountToCall,
   getFirstPostFlopActingSeat,
   getLegalActions,
+  getMinimumRaiseTo,
   getNextActingSeat,
   getNextStreet,
   getRemainingInHandPlayers,
@@ -1408,7 +1409,7 @@ export const submitAction = async ({
         pot += betAmount
 
         currentBet = actor.currentStreetContribution
-        minRaise = Math.max(betAmount, room.bigBlind)
+        minRaise = currentBet
         lastAggressorSeat = actor.seat
 
         if (actor.stack === 0) {
@@ -1439,7 +1440,6 @@ export const submitAction = async ({
           throw new Error('You do not have enough chips for that raise.')
         }
 
-        const previousBet = currentBet
         actor.stack -= extraAmount
         actor.currentStreetContribution = raiseTo
         actor.totalHandContribution += extraAmount
@@ -1448,7 +1448,7 @@ export const submitAction = async ({
         pot += extraAmount
 
         currentBet = raiseTo
-        minRaise = raiseTo - previousBet
+        minRaise = currentBet
         lastAggressorSeat = actor.seat
 
         if (actor.stack === 0) {
@@ -1496,13 +1496,16 @@ export const submitAction = async ({
           currentBet = actor.currentStreetContribution
           lastAggressorSeat = actor.seat
 
+          const minimumRaiseTo = getMinimumRaiseTo({
+            ...room,
+            currentBet: previousBet,
+            minRaise,
+          })
           const fullRaise =
-            previousBet === 0
-              ? raiseSize >= room.bigBlind
-              : raiseSize >= minRaise
+            previousBet === 0 ? raiseSize >= room.bigBlind : actor.currentStreetContribution >= minimumRaiseTo
 
           if (fullRaise) {
-            minRaise = Math.max(raiseSize, room.bigBlind)
+            minRaise = currentBet
             resetOtherActionablePlayers()
           } else {
             resetPlayersFacingNewAmount(currentBet)

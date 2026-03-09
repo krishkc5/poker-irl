@@ -40,7 +40,7 @@ export const getAmountToCall = (room: RoomDoc, player: PlayerDoc): number =>
   Math.max(0, room.currentBet - player.currentStreetContribution)
 
 export const getMinimumRaiseTo = (room: RoomDoc): number =>
-  room.currentBet > 0 ? room.currentBet + room.minRaise : Math.max(room.bigBlind, room.minRaise)
+  room.currentBet > 0 ? room.currentBet * 2 : Math.max(room.bigBlind, room.minRaise)
 
 const getSeatIndex = (players: PlayerDoc[], seat: number | null): number => {
   if (seat === null) {
