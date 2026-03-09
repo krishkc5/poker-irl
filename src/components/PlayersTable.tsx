@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { cn } from '../lib/cn'
 import { findNextSeat } from '../lib/gameEngine'
 import type { PlayerDoc, RoomDoc } from '../types/game'
@@ -112,6 +113,15 @@ const getSeatLayout = (count: number): SeatPoint[] => {
 
   return SEAT_LAYOUTS[9]
 }
+
+const scaleSeatPoint = (
+  point: SeatPoint,
+  spreadX: number,
+  spreadY: number,
+): SeatPoint => ({
+  left: 50 + (point.left - 50) * spreadX,
+  top: 50 + (point.top - 50) * spreadY,
+})
 
 const getBlindSeats = (
   room: RoomDoc,
@@ -228,13 +238,31 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
   const seatLayout = getSeatLayout(displayPlayers.length)
   const actingPlayer = players.find((player) => player.seat === room.currentTurnSeat) ?? null
   const { smallBlindSeat, bigBlindSeat } = getBlindSeats(room, seatedPlayers)
+  const [isCompactLandscape, setIsCompactLandscape] = useState(false)
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 1180px) and (orientation: landscape)')
+    const sync = () => setIsCompactLandscape(media.matches)
+    sync()
+
+    if (typeof media.addEventListener === 'function') {
+      media.addEventListener('change', sync)
+      return () => media.removeEventListener('change', sync)
+    }
+
+    media.addListener(sync)
+    return () => media.removeListener(sync)
+  }, [])
+
+  const seatSpreadX = isCompactLandscape ? 0.72 : 1
+  const seatSpreadY = isCompactLandscape ? 0.52 : 1
 
   return (
     <section className="table-arena-card poker-noise relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,14,0.94),rgba(6,10,9,0.98))] px-4 py-5 shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(70,171,111,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_22%)]" />
 
       <div className="table-arena-stage relative min-h-[620px] sm:min-h-[700px]">
-        <div className="poker-table-shell absolute left-1/2 top-1/2 h-[43%] w-[84%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] p-4 sm:h-[46%] sm:w-[78%] sm:p-5">
+        <div className="table-oval-shell poker-table-shell absolute left-1/2 top-1/2 h-[43%] w-[84%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] p-4 sm:h-[46%] sm:w-[78%] sm:p-5">
           <div className="poker-table-felt poker-noise relative flex h-full w-full flex-col items-center justify-center rounded-[999px] border border-white/10 px-5 text-center">
             <div className="table-center-chip poker-center-chip mb-4 rounded-full border border-amber-100/60 px-5 py-2 text-center text-amber-950">
               <p className="text-[10px] font-bold uppercase tracking-[0.28em]">Pot</p>
@@ -263,7 +291,8 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
         </div>
 
         {displayPlayers.map((player, index) => {
-          const seatPoint = seatLayout[index] ?? seatLayout[seatLayout.length - 1]
+          const rawSeatPoint = seatLayout[index] ?? seatLayout[seatLayout.length - 1]
+          const seatPoint = scaleSeatPoint(rawSeatPoint, seatSpreadX, seatSpreadY)
           const isDealer = room.dealerSeat !== null && player.seat === room.dealerSeat
           const isSmallBlind = smallBlindSeat !== null && player.seat === smallBlindSeat
           const isBigBlind = bigBlindSeat !== null && player.seat === bigBlindSeat
