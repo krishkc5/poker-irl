@@ -51,24 +51,24 @@ export const ActionControls = ({
   }
 
   return (
-    <Panel className="bg-[linear-gradient(180deg,rgba(13,19,17,0.95),rgba(7,11,10,0.98))]">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
+    <Panel className="action-dock-panel bg-[linear-gradient(180deg,rgba(13,19,17,0.95),rgba(7,11,10,0.98))]">
+      <div className="action-dock-header mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200/75">
             Action Dock
           </p>
-          <h2 className="mt-1 text-xl font-semibold text-[var(--table-accent-ice)]">
+          <h2 className="action-dock-title mt-1 text-xl font-semibold text-[var(--table-accent-ice)]">
             Your move, {currentPlayer.displayName}
           </h2>
         </div>
-        <p className="rounded-full border border-white/8 bg-black/20 px-3 py-2 text-xs text-slate-300">
+        <p className="action-dock-call rounded-full border border-white/8 bg-black/20 px-3 py-2 text-xs text-slate-300">
           To call: <span className="font-semibold text-slate-100">{formatChips(legal.amountToCall)}</span>
         </p>
       </div>
 
       {error ? <ErrorBanner message={error} /> : null}
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="action-dock-actions grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Button className="h-12" disabled={!legal.canCheck || busy} onClick={() => void submit('check')}>
           Check
         </Button>
@@ -93,7 +93,7 @@ export const ActionControls = ({
         </Button>
       </div>
 
-      <div className="mt-4 rounded-[1.4rem] border border-white/8 bg-black/20 p-4">
+      <div className="action-dock-raise mt-4 rounded-[1.4rem] border border-white/8 bg-black/20 p-4">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <label className="block text-xs text-slate-300" htmlFor="bet-amount">
             {isRaiseMode
@@ -105,7 +105,7 @@ export const ActionControls = ({
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="action-dock-raise-controls flex flex-col gap-2 sm:flex-row">
           <NumberInput
             id="bet-amount"
             min={isRaiseMode ? legal.minimumRaiseTo : legal.minimumBet}
@@ -124,7 +124,7 @@ export const ActionControls = ({
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 text-xs text-slate-300 sm:grid-cols-3">
+      <div className="action-dock-stats mt-4 grid grid-cols-2 gap-2 text-xs text-slate-300 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/8 bg-black/20 px-3 py-3">
           <p className="uppercase tracking-[0.16em] text-slate-500">Stack Behind</p>
           <p className="mt-1 text-base font-semibold text-[var(--table-accent-ice)]">

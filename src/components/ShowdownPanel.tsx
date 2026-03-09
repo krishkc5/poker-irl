@@ -83,7 +83,7 @@ export const ShowdownPanel = ({
     }))
 
   return (
-    <Panel className="bg-[linear-gradient(180deg,rgba(13,19,17,0.95),rgba(8,12,11,0.98))]">
+    <Panel className="showdown-panel bg-[linear-gradient(180deg,rgba(13,19,17,0.95),rgba(8,12,11,0.98))]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200/75">

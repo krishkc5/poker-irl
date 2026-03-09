@@ -236,26 +236,26 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
       <div className="table-arena-stage relative min-h-[620px] sm:min-h-[700px]">
         <div className="poker-table-shell absolute left-1/2 top-1/2 h-[43%] w-[84%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] p-4 sm:h-[46%] sm:w-[78%] sm:p-5">
           <div className="poker-table-felt poker-noise relative flex h-full w-full flex-col items-center justify-center rounded-[999px] border border-white/10 px-5 text-center">
-            <div className="poker-center-chip mb-4 rounded-full border border-amber-100/60 px-5 py-2 text-center text-amber-950">
+            <div className="table-center-chip poker-center-chip mb-4 rounded-full border border-amber-100/60 px-5 py-2 text-center text-amber-950">
               <p className="text-[10px] font-bold uppercase tracking-[0.28em]">Pot</p>
               <p className="text-2xl font-extrabold">{formatChips(room.pot)}</p>
             </div>
 
-            <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
+            <div className="table-center-badges mb-3 flex flex-wrap items-center justify-center gap-2">
               <Badge tone="success">{formatStreet(room.street)}</Badge>
               <Badge tone="neutral">Hand {room.handNumber}</Badge>
               <Badge tone="warning">To Call {formatChips(room.currentBet)}</Badge>
             </div>
 
-            <div className="max-w-md space-y-1 px-6">
-              <p className="text-lg font-semibold text-[var(--table-accent-ice)]">
+            <div className="table-center-copy max-w-md space-y-1 px-6">
+              <p className="table-center-title text-lg font-semibold text-[var(--table-accent-ice)]">
                 {room.street === 'showdown'
                   ? 'Showdown in progress'
                   : actingPlayer
                     ? `${actingPlayer.displayName} to act`
                     : 'Waiting for next action'}
               </p>
-              <p className="text-sm text-emerald-50/75">
+              <p className="table-center-subtitle text-sm text-emerald-50/75">
                 {room.lastAction ?? 'Use the table to track chips, blinds, and action.'}
               </p>
             </div>

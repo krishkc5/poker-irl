@@ -71,10 +71,11 @@ export const TableView = ({
     isPlayerAbleToAct(currentPlayer)
 
   const isHost = room.hostUid === currentUid
+  const isShowdown = room.street === 'showdown'
   const tableHint = currentPlayer ? getActionHint(room, currentPlayer, players) : 'Join this room to play.'
   const statusLine =
-    room.street === 'showdown'
-      ? 'The hand is at showdown. The host can settle the pot from the rail.'
+    isShowdown
+      ? 'Showdown is ready. Scroll below the table to settle the pot.'
       : actingPlayer
         ? `${actingPlayer.displayName} is acting.`
         : 'Waiting for the next action.'
@@ -87,17 +88,8 @@ export const TableView = ({
         error={operationError}
         onAction={onSubmitAction}
       />
-    ) : room.street === 'showdown' ? (
-      <ShowdownPanel
-        room={room}
-        players={players}
-        isHost={isHost}
-        busy={busy}
-        error={operationError}
-        onSettle={onSettleShowdown}
-      />
     ) : (
-      <Panel className="border-white/8 bg-[linear-gradient(180deg,rgba(11,17,15,0.92),rgba(8,13,12,0.98))]">
+      <Panel className="table-pulse-dock border-white/8 bg-[linear-gradient(180deg,rgba(11,17,15,0.92),rgba(8,13,12,0.98))]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-200/75">
@@ -120,12 +112,23 @@ export const TableView = ({
         <PlayersTable room={room} players={players} currentUid={currentUid} />
       </div>
 
-      <div className="table-view-interaction">
+      <div className="table-view-dock">
         {interactionPanel}
       </div>
 
-      <div className="table-view-rail">
-        <div className="table-view-rail-stack space-y-4">
+      <div className="table-view-secondary">
+        <div className="space-y-4">
+          {isShowdown ? (
+            <ShowdownPanel
+              room={room}
+              players={players}
+              isHost={isHost}
+              busy={busy}
+              error={operationError}
+              onSettle={onSettleShowdown}
+            />
+          ) : null}
+
           <Panel className="bg-[linear-gradient(180deg,rgba(12,19,17,0.95),rgba(8,12,11,0.98))]">
             <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
               <div>
