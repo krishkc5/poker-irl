@@ -2,6 +2,7 @@ import type {
   LegalActions,
   PlayerDoc,
   RoomDoc,
+  SidePot,
   Street,
 } from '../types/game'
 
@@ -297,46 +298,49 @@ export const splitPotAcrossWinners = (
   })
 }
 
-export const getUncalledOverbetRefunds = (
-  contenders: PlayerDoc[],
-): Array<{ uid: string; amount: number }> => {
-  if (contenders.length < 2) {
+export const calculateSidePots = (players: PlayerDoc[]): SidePot[] => {
+  const contributors = players.filter((player) => player.totalHandContribution > 0)
+  if (!contributors.length) {
     return []
   }
 
-  const contributions = contenders
-    .map((player) => Math.max(0, Math.trunc(player.totalHandContribution)))
-    .sort((a, b) => b - a)
+  const levels = Array.from(
+    new Set(
+      contributors
+        .map((player) => Math.trunc(player.totalHandContribution))
+        .filter((contribution) => contribution > 0),
+    ),
+  ).sort((a, b) => a - b)
 
-  const uniqueContributionLevels = Array.from(new Set(contributions))
+  const pots: SidePot[] = []
+  let previousLevel = 0
 
-  // More than two contribution levels implies side-pot logic; keep v1 behavior unchanged.
-  if (uniqueContributionLevels.length < 2 || uniqueContributionLevels.length > 2) {
-    return []
+  for (const level of levels) {
+    const layer = level - previousLevel
+    if (layer <= 0) {
+      previousLevel = level
+      continue
+    }
+
+    const participants = contributors.filter((player) => player.totalHandContribution >= level)
+    const eligibleUids = participants
+      .filter((player) => player.inHand && !player.folded)
+      .sort((a, b) => (a.seat ?? Number.MAX_SAFE_INTEGER) - (b.seat ?? Number.MAX_SAFE_INTEGER))
+      .map((player) => player.uid)
+
+    const amount = layer * participants.length
+    if (amount > 0 && eligibleUids.length > 0) {
+      pots.push({
+        index: pots.length,
+        amount,
+        eligibleUids,
+      })
+    }
+
+    previousLevel = level
   }
 
-  const highestContribution = uniqueContributionLevels[0]
-  const secondHighestContribution = uniqueContributionLevels[1]
-  const unmatched = highestContribution - secondHighestContribution
-
-  if (unmatched <= 0) {
-    return []
-  }
-
-  const highestContributors = contenders.filter(
-    (player) => Math.max(0, Math.trunc(player.totalHandContribution)) === highestContribution,
-  )
-
-  if (highestContributors.length !== 1) {
-    return []
-  }
-
-  return [
-    {
-      uid: highestContributors[0].uid,
-      amount: unmatched,
-    },
-  ]
+  return pots
 }
 
 export const resetStreetState = (players: PlayerDoc[]): PlayerMutation[] =>

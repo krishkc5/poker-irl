@@ -274,13 +274,13 @@ export const RoomPage = () => {
               'Failed to reset hand.',
             )
           }
-          onSettleShowdown={(winnerUids: string[]) =>
+          onSettleShowdown={(sidePotWinners) =>
             runOperation(
               () =>
                 settleShowdown({
                   roomCode: room.code,
                   requesterUid: user.uid,
-                  winnerUids,
+                  sidePotWinners,
                 }),
               'Failed to settle showdown.',
             )

@@ -66,6 +66,17 @@ export interface HandWinner {
   displayName: string
 }
 
+export interface SidePot {
+  index: number
+  amount: number
+  eligibleUids: string[]
+}
+
+export interface SidePotWinnerSelection {
+  potIndex: number
+  winnerUids: string[]
+}
+
 export interface HandDoc {
   id: string
   handNumber: number

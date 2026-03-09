@@ -25,9 +25,11 @@ import type {
   PlayerDoc,
   RoomDoc,
   RoomSettingsInput,
+  SidePotWinnerSelection,
   Street,
 } from '../types/game'
 import {
+  calculateSidePots,
   findNextSeat,
   getActionOrderSummary,
   getAmountToCall,
@@ -35,7 +37,6 @@ import {
   getLegalActions,
   getNextActingSeat,
   getNextStreet,
-  getUncalledOverbetRefunds,
   getRemainingInHandPlayers,
   hasSingleRemainingPlayer,
   initializeNewHand,
@@ -1001,17 +1002,19 @@ export const resetHand = async ({
 export const settleShowdown = async ({
   roomCode,
   requesterUid,
-  winnerUids,
+  sidePotWinners,
 }: {
   roomCode: string
   requesterUid: string
-  winnerUids: string[]
+  sidePotWinners: SidePotWinnerSelection[]
 }): Promise<void> => {
   const normalizedCode = ensureRoomCode(roomCode)
-
-  if (!winnerUids.length) {
-    throw new Error('Select at least one winner.')
-  }
+  const selectedByPot = new Map<number, string[]>(
+    sidePotWinners.map((entry) => [
+      entry.potIndex,
+      Array.from(new Set(entry.winnerUids.filter((uid) => typeof uid === 'string' && uid.length > 0))),
+    ]),
+  )
 
   type HandHistoryPayload = {
     handNumber: number
@@ -1042,25 +1045,82 @@ export const settleShowdown = async ({
     const players = playersSnapshot.docs.map(asPlayerDoc)
 
     const contenders = players.filter((player) => player.inHand && !player.folded)
-    const winnerSet = new Set(winnerUids)
-    const winners = contenders.filter((player) => winnerSet.has(player.uid))
-
-    if (winners.length !== winnerSet.size) {
-      throw new Error('Selected winners must be active in the hand.')
+    if (contenders.length === 0) {
+      throw new Error('No eligible showdown players.')
     }
 
-    const refunds = getUncalledOverbetRefunds(contenders)
-    const refundMap = new Map(refunds.map((entry) => [entry.uid, entry.amount]))
-    const totalRefund = refunds.reduce((total, entry) => total + entry.amount, 0)
-    const distributablePot = Math.max(0, room.pot - totalRefund)
+    const sidePots = calculateSidePots(players)
+    if (!sidePots.length) {
+      throw new Error('No side pots found for this hand.')
+    }
 
-    const payouts = splitPotAcrossWinners(distributablePot, winners)
-    const payoutMap = new Map(payouts.map((entry) => [entry.uid, entry.amount]))
+    const derivedPot = sidePots.reduce((total, sidePot) => total + sidePot.amount, 0)
+    if (derivedPot !== room.pot) {
+      throw new Error('Pot mismatch detected. Please reset hand and try again.')
+    }
+
+    const contenderMap = new Map(contenders.map((player) => [player.uid, player]))
+    const payoutMap = new Map<string, number>()
+    const potSummaries: string[] = []
+
+    for (const sidePot of sidePots) {
+      const eligiblePlayers = sidePot.eligibleUids
+        .map((uid) => contenderMap.get(uid) ?? null)
+        .filter((player): player is PlayerDoc => player !== null)
+
+      if (!eligiblePlayers.length) {
+        continue
+      }
+
+      let winnerUids: string[]
+      if (eligiblePlayers.length === 1) {
+        winnerUids = [eligiblePlayers[0].uid]
+      } else {
+        const selected = selectedByPot.get(sidePot.index) ?? []
+        if (!selected.length) {
+          const label = sidePot.index === 0 ? 'main pot' : `side pot ${sidePot.index}`
+          throw new Error(`Select winner(s) for ${label}.`)
+        }
+
+        if (selected.some((uid) => !sidePot.eligibleUids.includes(uid))) {
+          const label = sidePot.index === 0 ? 'main pot' : `side pot ${sidePot.index}`
+          throw new Error(`One or more selected winners are not eligible for ${label}.`)
+        }
+
+        winnerUids = selected
+      }
+
+      const winners = eligiblePlayers.filter((player) => winnerUids.includes(player.uid))
+      if (!winners.length) {
+        throw new Error('At least one eligible winner must be selected for each contested pot.')
+      }
+
+      const payouts = splitPotAcrossWinners(sidePot.amount, winners)
+      payouts.forEach((entry) => {
+        const runningTotal = payoutMap.get(entry.uid) ?? 0
+        payoutMap.set(entry.uid, runningTotal + entry.amount)
+      })
+
+      const winnerNames = winners.map((winner) => winner.displayName).join(', ')
+      const potLabel = sidePot.index === 0 ? 'Main pot' : `Side pot ${sidePot.index}`
+      const potSummary =
+        winners.length === 1
+          ? `${potLabel}: ${winnerNames} won ${sidePot.amount}.`
+          : `${potLabel}: ${winnerNames} split ${sidePot.amount}.`
+      potSummaries.push(potSummary)
+    }
+
+    const settledWinners = players
+      .filter((player) => (payoutMap.get(player.uid) ?? 0) > 0)
+      .sort((a, b) => (a.seat ?? Number.MAX_SAFE_INTEGER) - (b.seat ?? Number.MAX_SAFE_INTEGER))
+
+    if (!settledWinners.length) {
+      throw new Error('Unable to determine winners for the current showdown.')
+    }
 
     for (const player of players) {
-      const refund = refundMap.get(player.uid) ?? 0
       const payout = payoutMap.get(player.uid) ?? 0
-      const nextStack = player.stack + refund + payout
+      const nextStack = player.stack + payout
       transaction.update(getPlayerDocRef(normalizedCode, player.uid), {
         stack: nextStack,
         folded: false,
@@ -1072,26 +1132,12 @@ export const settleShowdown = async ({
       })
     }
 
-    const winnerNames = winners.map((winner) => winner.displayName).join(', ')
-    const winSummary =
-      winners.length === 1
-        ? `${winnerNames} won ${distributablePot} chips.`
-        : `${winnerNames} split ${distributablePot} chips.`
-
-    const refundSummary = refunds
-      .map((entry) => {
-        const player = contenders.find((contender) => contender.uid === entry.uid)
-        return player ? `${player.displayName} was refunded ${entry.amount} uncalled chips.` : ''
-      })
-      .filter(Boolean)
-      .join(' ')
-
-    const summary = refundSummary ? `${refundSummary} ${winSummary}` : winSummary
+    const summary = potSummaries.join(' ') || 'Showdown settled.'
 
     const payload: HandHistoryPayload = {
       handNumber: room.handNumber,
-      winners: winners.map((winner) => ({ uid: winner.uid, displayName: winner.displayName })),
-      pot: distributablePot,
+      winners: settledWinners.map((winner) => ({ uid: winner.uid, displayName: winner.displayName })),
+      pot: room.pot,
       summary,
     }
 
@@ -1099,7 +1145,7 @@ export const settleShowdown = async ({
       pot: 0,
       currentBet: 0,
       currentTurnSeat: null,
-      winnersUids: winners.map((winner) => winner.uid),
+      winnersUids: settledWinners.map((winner) => winner.uid),
       lastAggressorSeat: null,
       updatedAt: serverTimestamp(),
       lastAction: summary,
@@ -1109,7 +1155,7 @@ export const settleShowdown = async ({
       uid: requesterUid,
       displayName: 'System',
       type: 'system',
-      amount: distributablePot,
+      amount: room.pot,
       handNumber: room.handNumber,
       street: 'showdown',
       message: summary,
@@ -1493,9 +1539,9 @@ export const submitAction = async ({
       }
 
       if (isBettingRoundComplete(roomAfterAction, playersAfterAction)) {
-        const nextStreet = getNextStreet(street)
+        const actionableRemainingPlayers = remainingPlayers.filter(isPlayerAbleToAct)
 
-        if (!nextStreet || nextStreet === 'showdown') {
+        if (remainingPlayers.length > 1 && actionableRemainingPlayers.length <= 1) {
           street = 'showdown'
           currentTurnSeat = null
           currentBet = 0
@@ -1507,25 +1553,43 @@ export const submitAction = async ({
             player.hasActedThisStreet = false
           })
 
-          transitionMessage = transitionMessage ?? 'Betting complete. Move to showdown.'
+          transitionMessage =
+            transitionMessage ?? 'No further betting is possible. Proceed to showdown.'
         } else {
-          street = nextStreet
-          currentBet = 0
-          minRaise = room.bigBlind
-          lastAggressorSeat = null
+          const nextStreet = getNextStreet(street)
 
-          mutablePlayers.forEach((player) => {
-            player.currentStreetContribution = 0
-            player.hasActedThisStreet = !isPlayerAbleToAct(player)
-          })
+          if (!nextStreet || nextStreet === 'showdown') {
+            street = 'showdown'
+            currentTurnSeat = null
+            currentBet = 0
+            minRaise = room.bigBlind
+            lastAggressorSeat = null
 
-          if (room.dealerSeat === null) {
-            throw new Error('Dealer seat is missing.')
+            mutablePlayers.forEach((player) => {
+              player.currentStreetContribution = 0
+              player.hasActedThisStreet = false
+            })
+
+            transitionMessage = transitionMessage ?? 'Betting complete. Move to showdown.'
+          } else {
+            street = nextStreet
+            currentBet = 0
+            minRaise = room.bigBlind
+            lastAggressorSeat = null
+
+            mutablePlayers.forEach((player) => {
+              player.currentStreetContribution = 0
+              player.hasActedThisStreet = !isPlayerAbleToAct(player)
+            })
+
+            if (room.dealerSeat === null) {
+              throw new Error('Dealer seat is missing.')
+            }
+
+            currentTurnSeat = getFirstPostFlopActingSeat(playersAfterAction, room.dealerSeat)
+
+            transitionMessage = `${transitionMessage ?? 'Action complete.'} Street advanced to ${nextStreet}.`
           }
-
-          currentTurnSeat = getFirstPostFlopActingSeat(playersAfterAction, room.dealerSeat)
-
-          transitionMessage = `${transitionMessage ?? 'Action complete.'} Street advanced to ${nextStreet}.`
         }
       } else {
         currentTurnSeat = getNextActingSeat(playersAfterAction, actor.seat)

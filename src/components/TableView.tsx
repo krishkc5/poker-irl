@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { getActionHint } from '../lib/firestoreApi'
 import { isPlayerAbleToAct } from '../lib/gameEngine'
-import type { ActionDoc, HandDoc, PlayerDoc, RoomDoc } from '../types/game'
+import type { ActionDoc, HandDoc, PlayerDoc, RoomDoc, SidePotWinnerSelection } from '../types/game'
 import { formatChips, formatTimestamp } from '../utils/format'
 import { ActionControls } from './ActionControls'
 import { ActionLog } from './ActionLog'
@@ -21,7 +21,7 @@ interface TableViewProps {
   onStartNewHand: () => Promise<void>
   onAdvanceStreet: () => Promise<void>
   onResetHand: () => Promise<void>
-  onSettleShowdown: (winnerUids: string[]) => Promise<void>
+  onSettleShowdown: (selections: SidePotWinnerSelection[]) => Promise<void>
 }
 
 const getStreetTone = (street: RoomDoc['street']): 'neutral' | 'success' | 'warning' | 'danger' => {

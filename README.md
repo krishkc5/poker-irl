@@ -40,11 +40,13 @@ GitHub Pages target:
   - dealer rotation
   - automatic blind posting
   - street progression
+  - automatic showdown transition when no further betting is possible
   - host manual street advance and hand reset
   - host start next hand
 - Showdown settlement:
   - single winner
   - even split among selected winners
+  - side-pot-aware payouts with per-pot winner selection
 - Realtime action log and hand history archive
 - GitHub Pages deployment via GitHub Actions
 
@@ -54,7 +56,6 @@ GitHub Pages target:
 - No hidden cards or board cards
 - No hand ranking
 - No odds calculator
-- No side-pot support
 - No backend server
 
 ## Tech Stack
@@ -201,16 +202,16 @@ Fields include:
 `firestore.rules` includes MVP-focused rules:
 
 - Auth required for all access
-- Host-only room-level updates/deletes
-- Players can update/delete only their own player doc
-- Host can manage any player doc in room
-- Actions are append-only by room members
-- Hands can be created only by host
+- Host controls lobby/admin room updates and room deletion
+- Current-turn player can write active-hand gameplay state (turn/pot/player hand fields)
+- Players can update/delete their own player doc; host can manage any player doc
+- Actions are append-only (lobby members, host, or current-turn player depending on phase)
+- Hands can be created by host or current-turn player (for auto-settle paths)
 
 Practical join-flow tradeoff:
 
 - Authenticated users can read lobby room docs to validate/join by code
-- Player/action/hand data remains member-only
+- Player/action lists are readable in lobby for authenticated users to support join UX
 
 ## GitHub Pages Deployment
 
@@ -226,14 +227,13 @@ Practical join-flow tradeoff:
 
 ## Known Limitations
 
-- No side-pot logic in v1
 - Anonymous auth only (no account linking)
 - Room cleanup for nested subcollections is not automatic when a room is deleted
 - Security rules are practical MVP rules, not anti-cheat hardened
 
 ## Future Improvements
 
-- Side pots and deeper all-in handling
+- Advanced side-pot edge-case tooling and audit logs
 - Better reconnect/resume UX for dropped clients
 - Host transfer controls and moderation tools
 - Optional read-only spectator mode
