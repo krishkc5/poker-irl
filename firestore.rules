@@ -34,12 +34,23 @@ service cloud.firestore {
 
     match /rooms/{roomCode} {
       // Lobby room doc read is allowed for authenticated users so they can join by code.
-      allow read: if isSignedIn() && (isRoomMember(roomCode) || (roomExists(roomCode) && roomData(roomCode).status == 'lobby'));
+      // Also allow reads for non-existing room docs so createRoom collision checks can run.
+      allow read: if isSignedIn() && (
+        !roomExists(roomCode)
+        || isRoomMember(roomCode)
+        || (roomExists(roomCode) && roomData(roomCode).status == 'lobby')
+      );
       allow create: if isSignedIn() && request.resource.data.hostUid == request.auth.uid;
       allow update, delete: if isRoomHost(roomCode);
 
       match /players/{uid} {
-        allow read: if isRoomMember(roomCode);
+        // Allow lobby reads so users can see seats/host and join cleanly.
+        allow read: if isRoomMember(roomCode)
+          || (
+            isSignedIn()
+            && roomExists(roomCode)
+            && roomData(roomCode).status == 'lobby'
+          );
 
         allow create: if isSignedIn()
           && request.auth.uid == uid
@@ -57,7 +68,13 @@ service cloud.firestore {
       }
 
       match /actions/{actionId} {
-        allow read: if isRoomMember(roomCode);
+        // Allow lobby action feed visibility before membership is established.
+        allow read: if isRoomMember(roomCode)
+          || (
+            isSignedIn()
+            && roomExists(roomCode)
+            && roomData(roomCode).status == 'lobby'
+          );
         allow create: if isRoomMember(roomCode)
           || (
             isSignedIn()

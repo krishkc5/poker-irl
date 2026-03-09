@@ -480,10 +480,6 @@ export const joinRoom = async ({
       })
     }
 
-    transaction.update(roomRef, {
-      updatedAt: serverTimestamp(),
-    })
-
     return {
       joinedAsNewPlayer: !playerSnapshot.exists(),
       handNumber: room.handNumber,
