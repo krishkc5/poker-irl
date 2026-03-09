@@ -21,6 +21,22 @@ service cloud.firestore {
       return getAfter(roomPath(roomCode)).data;
     }
 
+    function requesterPlayerPath(roomCode) {
+      return /databases/$(database)/documents/rooms/$(roomCode)/players/$(request.auth.uid);
+    }
+
+    function requesterPlayerExists(roomCode) {
+      return isSignedIn() && exists(requesterPlayerPath(roomCode));
+    }
+
+    function requesterPlayerData(roomCode) {
+      return get(requesterPlayerPath(roomCode)).data;
+    }
+
+    function isActiveRoom(roomCode) {
+      return roomExists(roomCode) && roomData(roomCode).status == 'active';
+    }
+
     function isRoomMember(roomCode) {
       return isSignedIn()
         && exists(/databases/$(database)/documents/rooms/$(roomCode)/players/$(request.auth.uid));
@@ -32,6 +48,13 @@ service cloud.firestore {
         && roomData(roomCode).hostUid == request.auth.uid;
     }
 
+    function isCurrentTurnForRequester(roomCode) {
+      return requesterPlayerExists(roomCode)
+        && isActiveRoom(roomCode)
+        && roomData(roomCode).currentTurnSeat != null
+        && requesterPlayerData(roomCode).seat == roomData(roomCode).currentTurnSeat;
+    }
+
     match /rooms/{roomCode} {
       // Lobby room doc read is allowed for authenticated users so they can join by code.
       // Also allow reads for non-existing room docs so createRoom collision checks can run.
@@ -41,7 +64,32 @@ service cloud.firestore {
         || (roomExists(roomCode) && roomData(roomCode).status == 'lobby')
       );
       allow create: if isSignedIn() && request.resource.data.hostUid == request.auth.uid;
-      allow update, delete: if isRoomHost(roomCode);
+      allow update: if isRoomHost(roomCode)
+        || (
+          isCurrentTurnForRequester(roomCode)
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'currentTurnSeat',
+            'currentBet',
+            'minRaise',
+            'pot',
+            'street',
+            'winnersUids',
+            'lastAggressorSeat',
+            'lastAction',
+            'updatedAt'
+          ])
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.hostUid == resource.data.hostUid
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.startingStack == resource.data.startingStack
+          && request.resource.data.smallBlind == resource.data.smallBlind
+          && request.resource.data.bigBlind == resource.data.bigBlind
+          && request.resource.data.dealerSeat == resource.data.dealerSeat
+          && request.resource.data.handNumber == resource.data.handNumber
+          && request.resource.data.gameStarted == resource.data.gameStarted
+        );
+      allow delete: if isRoomHost(roomCode);
 
       match /players/{uid} {
         // Allow lobby reads so users can see seats/host and join cleanly.
@@ -63,7 +111,27 @@ service cloud.firestore {
             )
           );
 
-        allow update: if isSignedIn() && (request.auth.uid == uid || isRoomHost(roomCode));
+        allow update: if isSignedIn() && (
+          request.auth.uid == uid
+          || isRoomHost(roomCode)
+          || (
+            isCurrentTurnForRequester(roomCode)
+            && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+              'stack',
+              'folded',
+              'allIn',
+              'inHand',
+              'currentStreetContribution',
+              'totalHandContribution',
+              'hasActedThisStreet'
+            ])
+            && request.resource.data.uid == resource.data.uid
+            && request.resource.data.displayName == resource.data.displayName
+            && request.resource.data.seat == resource.data.seat
+            && request.resource.data.joinedAt == resource.data.joinedAt
+            && request.resource.data.isHost == resource.data.isHost
+          )
+        );
         allow delete: if isSignedIn() && (request.auth.uid == uid || isRoomHost(roomCode));
       }
 
@@ -75,7 +143,9 @@ service cloud.firestore {
             && roomExists(roomCode)
             && roomData(roomCode).status == 'lobby'
           );
-        allow create: if isRoomMember(roomCode)
+        allow create: if (isRoomMember(roomCode) && roomExists(roomCode) && roomData(roomCode).status == 'lobby')
+          || isRoomHost(roomCode)
+          || isCurrentTurnForRequester(roomCode)
           || (
             isSignedIn()
             && !roomExists(roomCode)
@@ -87,7 +157,7 @@ service cloud.firestore {
 
       match /hands/{handId} {
         allow read: if isRoomMember(roomCode);
-        allow create: if isRoomHost(roomCode);
+        allow create: if isRoomHost(roomCode) || isCurrentTurnForRequester(roomCode);
         allow update, delete: if false;
       }
     }
