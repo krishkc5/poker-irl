@@ -297,6 +297,48 @@ export const splitPotAcrossWinners = (
   })
 }
 
+export const getUncalledOverbetRefunds = (
+  contenders: PlayerDoc[],
+): Array<{ uid: string; amount: number }> => {
+  if (contenders.length < 2) {
+    return []
+  }
+
+  const contributions = contenders
+    .map((player) => Math.max(0, Math.trunc(player.totalHandContribution)))
+    .sort((a, b) => b - a)
+
+  const uniqueContributionLevels = Array.from(new Set(contributions))
+
+  // More than two contribution levels implies side-pot logic; keep v1 behavior unchanged.
+  if (uniqueContributionLevels.length < 2 || uniqueContributionLevels.length > 2) {
+    return []
+  }
+
+  const highestContribution = uniqueContributionLevels[0]
+  const secondHighestContribution = uniqueContributionLevels[1]
+  const unmatched = highestContribution - secondHighestContribution
+
+  if (unmatched <= 0) {
+    return []
+  }
+
+  const highestContributors = contenders.filter(
+    (player) => Math.max(0, Math.trunc(player.totalHandContribution)) === highestContribution,
+  )
+
+  if (highestContributors.length !== 1) {
+    return []
+  }
+
+  return [
+    {
+      uid: highestContributors[0].uid,
+      amount: unmatched,
+    },
+  ]
+}
+
 export const resetStreetState = (players: PlayerDoc[]): PlayerMutation[] =>
   players.map((player) => ({
     uid: player.uid,

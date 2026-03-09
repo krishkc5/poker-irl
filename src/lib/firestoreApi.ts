@@ -35,6 +35,7 @@ import {
   getLegalActions,
   getNextActingSeat,
   getNextStreet,
+  getUncalledOverbetRefunds,
   getRemainingInHandPlayers,
   hasSingleRemainingPlayer,
   initializeNewHand,
@@ -1048,12 +1049,18 @@ export const settleShowdown = async ({
       throw new Error('Selected winners must be active in the hand.')
     }
 
-    const payouts = splitPotAcrossWinners(room.pot, winners)
+    const refunds = getUncalledOverbetRefunds(contenders)
+    const refundMap = new Map(refunds.map((entry) => [entry.uid, entry.amount]))
+    const totalRefund = refunds.reduce((total, entry) => total + entry.amount, 0)
+    const distributablePot = Math.max(0, room.pot - totalRefund)
+
+    const payouts = splitPotAcrossWinners(distributablePot, winners)
     const payoutMap = new Map(payouts.map((entry) => [entry.uid, entry.amount]))
 
     for (const player of players) {
+      const refund = refundMap.get(player.uid) ?? 0
       const payout = payoutMap.get(player.uid) ?? 0
-      const nextStack = player.stack + payout
+      const nextStack = player.stack + refund + payout
       transaction.update(getPlayerDocRef(normalizedCode, player.uid), {
         stack: nextStack,
         folded: false,
@@ -1066,15 +1073,25 @@ export const settleShowdown = async ({
     }
 
     const winnerNames = winners.map((winner) => winner.displayName).join(', ')
-    const summary =
+    const winSummary =
       winners.length === 1
-        ? `${winnerNames} won ${room.pot} chips.`
-        : `${winnerNames} split ${room.pot} chips.`
+        ? `${winnerNames} won ${distributablePot} chips.`
+        : `${winnerNames} split ${distributablePot} chips.`
+
+    const refundSummary = refunds
+      .map((entry) => {
+        const player = contenders.find((contender) => contender.uid === entry.uid)
+        return player ? `${player.displayName} was refunded ${entry.amount} uncalled chips.` : ''
+      })
+      .filter(Boolean)
+      .join(' ')
+
+    const summary = refundSummary ? `${refundSummary} ${winSummary}` : winSummary
 
     const payload: HandHistoryPayload = {
       handNumber: room.handNumber,
       winners: winners.map((winner) => ({ uid: winner.uid, displayName: winner.displayName })),
-      pot: room.pot,
+      pot: distributablePot,
       summary,
     }
 
@@ -1092,7 +1109,7 @@ export const settleShowdown = async ({
       uid: requesterUid,
       displayName: 'System',
       type: 'system',
-      amount: room.pot,
+      amount: distributablePot,
       handNumber: room.handNumber,
       street: 'showdown',
       message: summary,
