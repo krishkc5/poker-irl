@@ -17,6 +17,10 @@ service cloud.firestore {
       return get(roomPath(roomCode)).data;
     }
 
+    function roomDataAfter(roomCode) {
+      return getAfter(roomPath(roomCode)).data;
+    }
+
     function isRoomMember(roomCode) {
       return isSignedIn()
         && exists(/databases/$(database)/documents/rooms/$(roomCode)/players/$(request.auth.uid));
@@ -39,8 +43,14 @@ service cloud.firestore {
 
         allow create: if isSignedIn()
           && request.auth.uid == uid
-          && roomExists(roomCode)
-          && roomData(roomCode).status == 'lobby';
+          && (
+            (roomExists(roomCode) && roomData(roomCode).status == 'lobby')
+            || (
+              !roomExists(roomCode)
+              && roomDataAfter(roomCode).hostUid == request.auth.uid
+              && roomDataAfter(roomCode).status == 'lobby'
+            )
+          );
 
         allow update: if isSignedIn() && (request.auth.uid == uid || isRoomHost(roomCode));
         allow delete: if isSignedIn() && (request.auth.uid == uid || isRoomHost(roomCode));
@@ -48,7 +58,13 @@ service cloud.firestore {
 
       match /actions/{actionId} {
         allow read: if isRoomMember(roomCode);
-        allow create: if isRoomMember(roomCode);
+        allow create: if isRoomMember(roomCode)
+          || (
+            isSignedIn()
+            && !roomExists(roomCode)
+            && roomDataAfter(roomCode).hostUid == request.auth.uid
+            && roomDataAfter(roomCode).status == 'lobby'
+          );
         allow update, delete: if false;
       }
 

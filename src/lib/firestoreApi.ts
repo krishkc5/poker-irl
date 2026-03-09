@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDocs,
   limit,
@@ -9,6 +10,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  setDoc,
   type DocumentData,
   type DocumentSnapshot,
   type FirestoreError,
@@ -82,6 +84,12 @@ const toStringArray = (value: unknown): string[] => {
 
   return value.filter((entry): entry is string => typeof entry === 'string')
 }
+
+const isPermissionDeniedError = (error: unknown): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  String((error as { code: unknown }).code).includes('permission-denied')
 
 const asRoomDoc = (snapshot: DocumentSnapshot<DocumentData>): RoomDoc => {
   const data = snapshot.data() ?? {}
@@ -357,9 +365,11 @@ export const createRoom = async ({
         }
 
         transaction.set(roomRef, roomData)
+      })
 
-        const hostRef = getPlayerDocRef(code, uid)
-        transaction.set(hostRef, {
+      const hostRef = getPlayerDocRef(code, uid)
+      try {
+        await setDoc(hostRef, {
           uid,
           displayName: normalizedName,
           seat: 1,
@@ -373,8 +383,18 @@ export const createRoom = async ({
           isHost: true,
           hasActedThisStreet: false,
         })
+      } catch (error) {
+        try {
+          await deleteDoc(getRoomRef(code))
+        } catch {
+          // If cleanup fails, surface the original error.
+        }
 
-        addAction(transaction, code, {
+        throw error
+      }
+
+      try {
+        await addDoc(getActionsCollection(code), {
           uid: null,
           displayName: 'System',
           type: 'system',
@@ -382,8 +402,13 @@ export const createRoom = async ({
           handNumber: 0,
           street: 'preflop',
           message: `${normalizedName} created room ${code}.`,
+          createdAt: serverTimestamp(),
         })
-      })
+      } catch (error) {
+        if (!isPermissionDeniedError(error)) {
+          throw error
+        }
+      }
 
       return code
     } catch (error) {
@@ -415,7 +440,11 @@ export const joinRoom = async ({
     throw new Error(nameError)
   }
 
-  await runTransaction(db, async (transaction) => {
+  const joinResult = await runTransaction<{
+    joinedAsNewPlayer: boolean
+    handNumber: number
+    street: Street
+  }>(db, async (transaction) => {
     const roomRef = getRoomRef(normalizedCode)
     const roomSnapshot = await transaction.get(roomRef)
     if (!roomSnapshot.exists()) {
@@ -449,22 +478,39 @@ export const joinRoom = async ({
         isHost: false,
         hasActedThisStreet: false,
       })
-
-      addAction(transaction, normalizedCode, {
-        uid,
-        displayName: normalizedName,
-        type: 'system',
-        amount: 0,
-        handNumber: room.handNumber,
-        street: room.street,
-        message: `${normalizedName} joined the room.`,
-      })
     }
 
     transaction.update(roomRef, {
       updatedAt: serverTimestamp(),
     })
+
+    return {
+      joinedAsNewPlayer: !playerSnapshot.exists(),
+      handNumber: room.handNumber,
+      street: room.street,
+    }
   })
+
+  if (!joinResult.joinedAsNewPlayer) {
+    return
+  }
+
+  try {
+    await addDoc(getActionsCollection(normalizedCode), {
+      uid,
+      displayName: normalizedName,
+      type: 'system',
+      amount: 0,
+      handNumber: joinResult.handNumber,
+      street: joinResult.street,
+      message: `${normalizedName} joined the room.`,
+      createdAt: serverTimestamp(),
+    })
+  } catch (error) {
+    if (!isPermissionDeniedError(error)) {
+      throw error
+    }
+  }
 }
 
 export const leaveRoom = async ({ roomCode, uid }: { roomCode: string; uid: string }): Promise<void> => {
@@ -1081,13 +1127,7 @@ export const settleShowdown = async ({
       actions: actionLines,
     })
   } catch (error) {
-    const isPermissionDenied =
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      String((error as { code: unknown }).code).includes('permission-denied')
-
-    if (!isPermissionDenied) {
+    if (!isPermissionDeniedError(error)) {
       throw error
     }
   }
