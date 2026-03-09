@@ -285,6 +285,35 @@ const CompactSeatBody = ({
   )
 }
 
+const CompactBoardCenter = ({
+  room,
+  actingPlayerName,
+}: {
+  room: RoomDoc
+  actingPlayerName: string | null
+}) => (
+  <div className="compact-board-center">
+    <div className="compact-board-pot">
+      <span className="compact-board-pot-label">Pot</span>
+      <span className="compact-board-pot-value">{formatChips(room.pot)}</span>
+    </div>
+
+    <div className="compact-board-meta">
+      <span>{formatStreet(room.street)}</span>
+      <span>Hand {room.handNumber}</span>
+      <span>Call {formatChips(room.currentBet)}</span>
+    </div>
+
+    <p className="compact-board-turn">
+      {room.street === 'showdown'
+        ? 'Showdown'
+        : actingPlayerName
+          ? `${actingPlayerName} to act`
+          : 'Waiting'}
+    </p>
+  </div>
+)
+
 export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) => {
   const seatedPlayers = orderBySeat(players).filter((player) => player.seat !== null)
   const displayPlayers = rotateForViewer(seatedPlayers, currentUid)
@@ -307,41 +336,50 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
     return () => media.removeListener(sync)
   }, [])
 
-  const seatSpreadX = isCompactLandscape ? 0.62 : 1
-  const seatSpreadY = isCompactLandscape ? 0.34 : 1
+  const seatSpreadX = isCompactLandscape ? 1.04 : 1
+  const seatSpreadY = isCompactLandscape ? 1.1 : 1
 
   return (
-    <section className="table-arena-card poker-noise relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,14,0.94),rgba(6,10,9,0.98))] px-4 py-5 shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
+    <section
+      className={cn(
+        'table-arena-card poker-noise relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,14,0.94),rgba(6,10,9,0.98))] px-4 py-5 shadow-[0_30px_80px_rgba(0,0,0,0.38)]',
+        isCompactLandscape && 'compact-flat-board',
+      )}
+    >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(70,171,111,0.12),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.02),transparent_22%)]" />
 
       <div className="table-arena-stage relative min-h-[620px] sm:min-h-[700px]">
-        <div className="table-oval-shell poker-table-shell absolute left-1/2 top-1/2 h-[43%] w-[84%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] p-4 sm:h-[46%] sm:w-[78%] sm:p-5">
-          <div className="poker-table-felt poker-noise relative flex h-full w-full flex-col items-center justify-center rounded-[999px] border border-white/10 px-5 text-center">
-            <div className="table-center-chip poker-center-chip mb-4 rounded-full border border-amber-100/60 px-5 py-2 text-center text-amber-950">
-              <p className="text-[10px] font-bold uppercase tracking-[0.28em]">Pot</p>
-              <p className="text-2xl font-extrabold">{formatChips(room.pot)}</p>
-            </div>
+        {isCompactLandscape ? (
+          <CompactBoardCenter room={room} actingPlayerName={actingPlayer?.displayName ?? null} />
+        ) : (
+          <div className="table-oval-shell poker-table-shell absolute left-1/2 top-1/2 h-[43%] w-[84%] -translate-x-1/2 -translate-y-1/2 rounded-[999px] p-4 sm:h-[46%] sm:w-[78%] sm:p-5">
+            <div className="poker-table-felt poker-noise relative flex h-full w-full flex-col items-center justify-center rounded-[999px] border border-white/10 px-5 text-center">
+              <div className="table-center-chip poker-center-chip mb-4 rounded-full border border-amber-100/60 px-5 py-2 text-center text-amber-950">
+                <p className="text-[10px] font-bold uppercase tracking-[0.28em]">Pot</p>
+                <p className="text-2xl font-extrabold">{formatChips(room.pot)}</p>
+              </div>
 
-            <div className="table-center-badges mb-3 flex flex-wrap items-center justify-center gap-2">
-              <Badge tone="success">{formatStreet(room.street)}</Badge>
-              <Badge tone="neutral">Hand {room.handNumber}</Badge>
-              <Badge tone="warning">To Call {formatChips(room.currentBet)}</Badge>
-            </div>
+              <div className="table-center-badges mb-3 flex flex-wrap items-center justify-center gap-2">
+                <Badge tone="success">{formatStreet(room.street)}</Badge>
+                <Badge tone="neutral">Hand {room.handNumber}</Badge>
+                <Badge tone="warning">To Call {formatChips(room.currentBet)}</Badge>
+              </div>
 
-            <div className="table-center-copy max-w-md space-y-1 px-6">
-              <p className="table-center-title text-lg font-semibold text-[var(--table-accent-ice)]">
-                {room.street === 'showdown'
-                  ? 'Showdown in progress'
-                  : actingPlayer
-                    ? `${actingPlayer.displayName} to act`
-                    : 'Waiting for next action'}
-              </p>
-              <p className="table-center-subtitle text-sm text-emerald-50/75">
-                {room.lastAction ?? 'Use the table to track chips, blinds, and action.'}
-              </p>
+              <div className="table-center-copy max-w-md space-y-1 px-6">
+                <p className="table-center-title text-lg font-semibold text-[var(--table-accent-ice)]">
+                  {room.street === 'showdown'
+                    ? 'Showdown in progress'
+                    : actingPlayer
+                      ? `${actingPlayer.displayName} to act`
+                      : 'Waiting for next action'}
+                </p>
+                <p className="table-center-subtitle text-sm text-emerald-50/75">
+                  {room.lastAction ?? 'Use the table to track chips, blinds, and action.'}
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {displayPlayers.map((player, index) => {
           const rawSeatPoint = seatLayout[index] ?? seatLayout[seatLayout.length - 1]
