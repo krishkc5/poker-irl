@@ -23,6 +23,10 @@ export const ShowdownPanel = ({
 }: ShowdownPanelProps) => {
   const sidePots = useMemo(() => calculateSidePots(players), [players])
   const playersByUid = useMemo(() => new Map(players.map((player) => [player.uid, player])), [players])
+  const hostName = useMemo(
+    () => players.find((player) => player.uid === room.hostUid)?.displayName ?? 'the host',
+    [players, room.hostUid],
+  )
   const [selectedByPot, setSelectedByPot] = useState<Record<number, string[]>>({})
   const contestedPots = sidePots.filter((sidePot) => sidePot.eligibleUids.length > 1)
 
@@ -51,7 +55,26 @@ export const ShowdownPanel = ({
       return winners.length > 0
     })
 
-  const getPotLabel = (potIndex: number): string => (potIndex === 0 ? 'Main Pot' : `Side Pot ${potIndex}`)
+  const formatNameList = (names: string[]): string => {
+    if (names.length === 0) {
+      return 'nobody'
+    }
+
+    if (names.length === 1) {
+      return names[0]
+    }
+
+    if (names.length === 2) {
+      return `${names[0]} & ${names[1]}`
+    }
+
+    return `${names.slice(0, -1).join(', ')} & ${names[names.length - 1]}`
+  }
+
+  const getPotLabel = (potIndex: number, names: string[]): string =>
+    potIndex === 0
+      ? `Main Pot between ${formatNameList(names)}`
+      : `Side Pot between ${formatNameList(names)}`
 
   const buildSelections = (): SidePotWinnerSelection[] =>
     contestedPots.map((sidePot) => ({
@@ -66,8 +89,6 @@ export const ShowdownPanel = ({
       </h2>
       <p className="mb-3 text-sm text-slate-300">Pot: {formatChips(room.pot)}</p>
 
-      {error ? <ErrorBanner message={error} /> : null}
-
       {sidePots.length === 0 ? (
         <p className="rounded-lg border border-dashed border-white/15 px-3 py-4 text-sm text-slate-300">
           No side pots to settle.
@@ -79,6 +100,10 @@ export const ShowdownPanel = ({
               .map((uid) => playersByUid.get(uid) ?? null)
               .filter((player): player is PlayerDoc => player !== null)
             const singleWinner = eligiblePlayers.length === 1 ? eligiblePlayers[0] : null
+            const potLabel = getPotLabel(
+              sidePot.index,
+              eligiblePlayers.map((player) => player.displayName),
+            )
 
             return (
               <section
@@ -86,13 +111,17 @@ export const ShowdownPanel = ({
                 className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm"
               >
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <p className="font-semibold text-slate-100">{getPotLabel(sidePot.index)}</p>
+                  <p className="font-semibold text-slate-100">{potLabel}</p>
                   <p className="text-xs text-slate-300">{formatChips(sidePot.amount)}</p>
                 </div>
 
                 {singleWinner ? (
                   <p className="text-xs text-slate-300">
                     Auto-awarded to <span className="font-semibold text-slate-100">{singleWinner.displayName}</span>.
+                  </p>
+                ) : !isHost ? (
+                  <p className="text-xs text-slate-300">
+                    Waiting for <span className="font-semibold text-slate-100">{hostName}</span> to settle this pot.
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -121,16 +150,23 @@ export const ShowdownPanel = ({
 
       <div className="mt-3">
         {isHost ? (
-          <Button
-            disabled={busy || !canSettle}
-            onClick={() => {
-              void onSettle(buildSelections())
-            }}
-          >
-            Settle Pot
-          </Button>
+          <>
+            {error ? <ErrorBanner message={error} /> : null}
+            <div className={error ? 'mt-3' : ''}>
+              <Button
+                disabled={busy || !canSettle}
+                onClick={() => {
+                  void onSettle(buildSelections())
+                }}
+              >
+                Settle Pot
+              </Button>
+            </div>
+          </>
         ) : (
-          <p className="text-sm text-slate-300">Waiting for host to choose winner(s).</p>
+          <p className="text-sm text-slate-300">
+            Waiting for <span className="font-semibold text-slate-100">{hostName}</span> to settle the pot.
+          </p>
         )}
       </div>
     </Panel>
