@@ -232,6 +232,59 @@ const TableButtonRow = ({
   )
 }
 
+const CompactSeatBody = ({
+  player,
+  isCurrentUser,
+  isTurn,
+  isHost,
+}: {
+  player: PlayerDoc
+  isCurrentUser: boolean
+  isTurn: boolean
+  isHost: boolean
+}) => {
+  const flags = [
+    isHost ? 'H' : null,
+    isTurn ? 'T' : null,
+    player.allIn ? 'AI' : null,
+    player.folded ? 'F' : null,
+  ].filter((flag): flag is string => flag !== null)
+
+  return (
+    <div className="compact-seat-body">
+      <div className="compact-seat-top">
+        <p className="compact-seat-name">
+          {player.displayName}
+          {isCurrentUser ? ' *' : ''}
+        </p>
+        <span className="compact-seat-stack">{formatChips(player.stack)}</span>
+      </div>
+
+      <div className="compact-seat-bottom">
+        <span className="compact-seat-meta">S{player.seat}</span>
+
+        {flags.length > 0 ? (
+          <div className="compact-seat-flags">
+            {flags.map((flag) => (
+              <span
+                key={`${player.uid}-${flag}`}
+                className={cn(
+                  'compact-seat-flag',
+                  flag === 'AI' || flag === 'F'
+                    ? 'compact-seat-flag-danger'
+                    : 'compact-seat-flag-warning',
+                )}
+              >
+                {flag}
+              </span>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) => {
   const seatedPlayers = orderBySeat(players).filter((player) => player.seat !== null)
   const displayPlayers = rotateForViewer(seatedPlayers, currentUid)
@@ -254,8 +307,8 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
     return () => media.removeListener(sync)
   }, [])
 
-  const seatSpreadX = isCompactLandscape ? 0.58 : 1
-  const seatSpreadY = isCompactLandscape ? 0.24 : 1
+  const seatSpreadX = isCompactLandscape ? 0.62 : 1
+  const seatSpreadY = isCompactLandscape ? 0.34 : 1
 
   return (
     <section className="table-arena-card poker-noise relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(180deg,rgba(10,16,14,0.94),rgba(6,10,9,0.98))] px-4 py-5 shadow-[0_30px_80px_rgba(0,0,0,0.38)]">
@@ -327,40 +380,51 @@ export const PlayersTable = ({ room, players, currentUid }: PlayersTableProps) =
                   player.allIn && !player.folded && 'border-rose-300/30',
                 )}
               >
-                <div className="mb-2 flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-[var(--table-accent-ice)]">
-                      {player.displayName}
-                      {isCurrentUser ? ' (you)' : ''}
-                    </p>
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Seat {player.seat}</p>
-                  </div>
-                  <span className="rounded-full border border-white/8 bg-white/5 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-300">
-                    {formatChips(player.stack)}
-                  </span>
-                </div>
+                {isCompactLandscape ? (
+                  <CompactSeatBody
+                    player={player}
+                    isCurrentUser={isCurrentUser}
+                    isTurn={isTurn}
+                    isHost={player.uid === room.hostUid}
+                  />
+                ) : (
+                  <>
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[var(--table-accent-ice)]">
+                          {player.displayName}
+                          {isCurrentUser ? ' (you)' : ''}
+                        </p>
+                        <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Seat {player.seat}</p>
+                      </div>
+                      <span className="rounded-full border border-white/8 bg-white/5 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-300">
+                        {formatChips(player.stack)}
+                      </span>
+                    </div>
 
-                <div className="mb-2 flex flex-wrap gap-1">
-                  {player.uid === room.hostUid ? <Badge tone="warning">Host</Badge> : null}
-                  {player.folded ? <Badge tone="danger">Folded</Badge> : null}
-                  {player.allIn ? <Badge tone="danger">All-In</Badge> : null}
-                  {isTurn ? <Badge tone="warning">Turn</Badge> : null}
-                </div>
+                    <div className="mb-2 flex flex-wrap gap-1">
+                      {player.uid === room.hostUid ? <Badge tone="warning">Host</Badge> : null}
+                      {player.folded ? <Badge tone="danger">Folded</Badge> : null}
+                      {player.allIn ? <Badge tone="danger">All-In</Badge> : null}
+                      {isTurn ? <Badge tone="warning">Turn</Badge> : null}
+                    </div>
 
-                <div className="table-seat-stats grid grid-cols-2 gap-2 text-[11px] text-slate-300">
-                  <div className="rounded-xl border border-white/8 bg-black/20 px-2.5 py-2">
-                    <p className="uppercase tracking-[0.16em] text-slate-500">Street</p>
-                    <p className="mt-1 font-semibold text-slate-100">
-                      {formatChips(player.currentStreetContribution)}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-white/8 bg-black/20 px-2.5 py-2">
-                    <p className="uppercase tracking-[0.16em] text-slate-500">Hand</p>
-                    <p className="mt-1 font-semibold text-slate-100">
-                      {formatChips(player.totalHandContribution)}
-                    </p>
-                  </div>
-                </div>
+                    <div className="table-seat-stats grid grid-cols-2 gap-2 text-[11px] text-slate-300">
+                      <div className="rounded-xl border border-white/8 bg-black/20 px-2.5 py-2">
+                        <p className="uppercase tracking-[0.16em] text-slate-500">Street</p>
+                        <p className="mt-1 font-semibold text-slate-100">
+                          {formatChips(player.currentStreetContribution)}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-white/8 bg-black/20 px-2.5 py-2">
+                        <p className="uppercase tracking-[0.16em] text-slate-500">Hand</p>
+                        <p className="mt-1 font-semibold text-slate-100">
+                          {formatChips(player.totalHandContribution)}
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="table-seat-buttons">

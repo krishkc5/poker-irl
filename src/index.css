@@ -133,7 +133,7 @@ body {
   }
 
   .table-arena-card {
-    height: clamp(140px, 30dvh, 190px);
+    height: clamp(180px, 36dvh, 240px);
     padding: 0.28rem;
   }
 
@@ -144,8 +144,8 @@ body {
   }
 
   .table-oval-shell {
-    height: 40% !important;
-    width: 62% !important;
+    height: 46% !important;
+    width: 70% !important;
     padding: 0.22rem !important;
   }
 
@@ -194,12 +194,12 @@ body {
   }
 
   .table-seat-wrap {
-    width: clamp(4.1rem, 6.7vw, 4.8rem);
+    width: clamp(5.2rem, 7.8vw, 6.2rem);
   }
 
   .table-seat-body {
-    border-radius: 0.72rem;
-    padding: 0.24rem;
+    border-radius: 0.7rem;
+    padding: 0.14rem;
   }
 
   .table-seat-body p,
@@ -219,21 +219,80 @@ body {
     font-size: 0.36rem;
   }
 
-  .table-seat-body .mb-2 {
-    margin-bottom: 0.16rem;
-  }
-
-  .table-seat-body .gap-1 {
-    gap: 0.12rem;
-  }
-
-  .table-seat-body .rounded-xl {
-    border-radius: 0.7rem;
-    padding: 0.28rem 0.32rem;
-  }
-
   .table-seat-stats {
     display: none;
+  }
+
+  .compact-seat-body {
+    display: flex;
+    min-height: 2.2rem;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.14rem;
+    padding: 0.16rem 0.2rem;
+  }
+
+  .compact-seat-top,
+  .compact-seat-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem;
+  }
+
+  .compact-seat-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.5rem;
+    font-weight: 700;
+    color: var(--table-accent-ice);
+  }
+
+  .compact-seat-stack {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    padding: 0.1rem 0.3rem;
+    font-size: 0.44rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #e2e8f0;
+  }
+
+  .compact-seat-meta {
+    font-size: 0.38rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(148 163 184 / 0.9);
+  }
+
+  .compact-seat-flags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.12rem;
+    justify-content: flex-end;
+  }
+
+  .compact-seat-flag {
+    border-radius: 999px;
+    padding: 0.06rem 0.22rem;
+    font-size: 0.34rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .compact-seat-flag-warning {
+    border: 1px solid rgba(224, 183, 97, 0.35);
+    color: rgb(253 230 138 / 0.96);
+    background: rgba(120, 87, 16, 0.22);
+  }
+
+  .compact-seat-flag-danger {
+    border: 1px solid rgba(239, 107, 96, 0.3);
+    color: rgb(254 205 211 / 0.96);
+    background: rgba(127, 29, 29, 0.24);
   }
 
   .table-seat-cards > div {
@@ -394,12 +453,12 @@ body {
   }
 
   .table-oval-shell {
-    height: 36% !important;
-    width: 58% !important;
+    height: 42% !important;
+    width: 66% !important;
   }
 
   .table-seat-wrap {
-    width: clamp(3.7rem, 6vw, 4.3rem);
+    width: clamp(4.65rem, 7vw, 5.4rem);
   }
 
   .table-center-title {
